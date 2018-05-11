@@ -8,5 +8,5 @@ go:
  - 1.10
 
 script:
- - go test github.com/MaxnSter/gnet/gnet_test.go
+ - go test $GOPATH/src/github.com/MaxnSter/gnet/gnet_test.go
 
