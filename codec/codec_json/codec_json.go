@@ -11,7 +11,7 @@ var (
 )
 
 const (
-	// codec_json's typeName
+	// coderJson's typeName
 	CoderJsonTypeName = "json"
 )
 
