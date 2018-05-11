@@ -3,7 +3,7 @@ package codec_json
 import (
 	"encoding/json"
 
-	"gnet/codec"
+	"github.com/MaxnSter/gnet/codec"
 )
 
 var (

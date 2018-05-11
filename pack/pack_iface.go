@@ -3,8 +3,8 @@ package pack
 import (
 	"io"
 
-	"gnet/codec"
-	"gnet/message"
+	"github.com/MaxnSter/gnet/codec"
+	"github.com/MaxnSter/gnet/message"
 )
 
 type Packer interface {

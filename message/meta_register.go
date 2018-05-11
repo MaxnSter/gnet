@@ -3,10 +3,10 @@ package message
 import "fmt"
 
 var (
-	metas = map[uint32]*MessageMeta{}
+	metas = map[uint32]*messageMeta{}
 )
 
-func RegisterMsgMeta(id uint32, m *MessageMeta) {
+func RegisterMsgMeta(id uint32, m *messageMeta) {
 	if _, ok := metas[id]; ok {
 		panic(fmt.Sprintf("dup register message meta, id :%d", id))
 	}
@@ -14,7 +14,7 @@ func RegisterMsgMeta(id uint32, m *MessageMeta) {
 	metas[id] = m
 }
 
-func GetMsgMeta(id uint32) *MessageMeta {
+func GetMsgMeta(id uint32) *messageMeta {
 	if m, ok := metas[id]; ok {
 		return m
 	}
@@ -22,7 +22,7 @@ func GetMsgMeta(id uint32) *MessageMeta {
 	return nil
 }
 
-func MustGetMsgMeta(id uint32) *MessageMeta {
+func MustGetMsgMeta(id uint32) *messageMeta {
 
 	if m, ok := metas[id]; ok {
 		return m

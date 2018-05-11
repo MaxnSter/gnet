@@ -3,8 +3,8 @@ package message_demo
 import (
 	"reflect"
 
-	"gnet/message"
-	"gnet/message/protocol"
+	"github.com/MaxnSter/gnet/message"
+	"github.com/MaxnSter/gnet/message/protocol"
 )
 
 var (
@@ -32,8 +32,6 @@ func (msg *DemoMessage) ID() uint32 {
 }
 
 func init() {
-	message.RegisterMsgMeta(protocolId, &message.MessageMeta{
-		ID:   protocolId,
-		Type: reflect.TypeOf((*DemoMessage)(nil)).Elem(),
-	})
+	meta := message.NewMsgMeta(protocolId, reflect.TypeOf((*DemoMessage)(nil)).Elem())
+	message.RegisterMsgMeta(protocolId, meta)
 }

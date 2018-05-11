@@ -5,9 +5,9 @@ import (
 	"errors"
 	"io"
 
-	"gnet/codec"
-	"gnet/message"
-	"gnet/pack"
+	"github.com/MaxnSter/gnet/codec"
+	"github.com/MaxnSter/gnet/message"
+	"github.com/MaxnSter/gnet/pack"
 )
 
 var (
@@ -77,7 +77,7 @@ func (p *tlvPacker) Pack(writer io.Writer, c codec.Coder, msg message.Message) e
 		return err
 	}
 
-	totalLen := LengthBytes + TypeBytes +  len(buf)
+	totalLen := LengthBytes + TypeBytes + len(buf)
 	bodyLen := TypeBytes + len(buf)
 	pack := make([]byte, totalLen)
 

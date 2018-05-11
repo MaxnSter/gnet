@@ -4,14 +4,11 @@ import (
 	"bytes"
 	"testing"
 
-	"gnet/codec"
-	"gnet/codec/codec_json"
-	_ "gnet/codec/codec_json"
-	"gnet/message/protocol/message_demo"
-	_ "gnet/message/protocol/message_demo"
-	"gnet/pack"
-	"gnet/pack/pack_type_length_value"
-	_ "gnet/pack/pack_type_length_value"
+	"github.com/MaxnSter/gnet/codec"
+	"github.com/MaxnSter/gnet/codec/codec_json"
+	"github.com/MaxnSter/gnet/message/protocol/message_demo"
+	"github.com/MaxnSter/gnet/pack"
+	"github.com/MaxnSter/gnet/pack/pack_type_length_value"
 )
 
 func TestMessagePack(t *testing.T) {
