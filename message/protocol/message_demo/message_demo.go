@@ -16,19 +16,19 @@ const (
 )
 
 type DemoMessage struct {
-	id  uint32
+	Id  uint32
 	Val string
 }
 
 func NewDemoMessage(v string) *DemoMessage {
 	return &DemoMessage{
-		id:  protocolId,
+		Id:  protocolId,
 		Val: v,
 	}
 }
 
 func (msg *DemoMessage) ID() uint32 {
-	return msg.id
+	return msg.Id
 }
 
 func init() {

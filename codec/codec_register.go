@@ -4,11 +4,11 @@ var (
 	coders = map[string]Coder{}
 )
 
-func RegisterCoder(name string, c Coder)  {
+func RegisterCoder(name string, c Coder) {
 	if _, ok := coders[name]; ok {
 		panic("duplicate register Coder :" + name)
 	}
-	
+
 	coders[name] = c
 }
 

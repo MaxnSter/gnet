@@ -8,7 +8,6 @@ import (
 )
 
 type Packer interface {
-
 	Unpack(reader io.Reader, c codec.Coder) (msg message.Message, err error)
 
 	Pack(writer io.Writer, c codec.Coder, msg message.Message) error
