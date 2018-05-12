@@ -85,3 +85,11 @@ func (client *TcpClient) Stop() {
 	//close the session
 	client.session.Close()
 }
+
+func (client *TcpClient) StartAndRun()  {
+	if err := client.Start(); err != nil {
+		panic(err)
+	}
+
+	client.Run()
+}
