@@ -1,10 +1,12 @@
 package codec
 
+import "github.com/MaxnSter/gnet/iface"
+
 var (
-	coders = map[string]Coder{}
+	coders = map[string]iface.Coder{}
 )
 
-func RegisterCoder(name string, c Coder) {
+func RegisterCoder(name string, c iface.Coder) {
 	if _, ok := coders[name]; ok {
 		panic("duplicate register Coder :" + name)
 	}
@@ -12,7 +14,7 @@ func RegisterCoder(name string, c Coder) {
 	coders[name] = c
 }
 
-func MustGetCoder(name string) Coder {
+func MustGetCoder(name string) iface.Coder {
 	if c, ok := coders[name]; ok {
 		return c
 	} else {

@@ -3,15 +3,14 @@ package net
 import (
 	"io"
 
-	"github.com/MaxnSter/gnet/codec"
-	"github.com/MaxnSter/gnet/message"
-	"github.com/MaxnSter/gnet/pack"
+	"github.com/MaxnSter/gnet/iface"
 )
 
 type NetOptions struct {
-	Coder  codec.Coder
-	Packer pack.Packer
-	CB     UserEventCB
+	Coder  iface.Coder
+	Packer iface.Packer
+	Worker iface.WorkerPool
+	CB     iface.UserEventCB
 
 	OnConnect     OnConnectedFunc
 	OnAccepted    OnAcceptedFunc
@@ -28,14 +27,16 @@ type OnServerClosedFunc func()
 
 type NetOpFunc func(options *NetOptions)
 
-func (op *NetOptions) ReadMessage(reader io.Reader) (message.Message, error) {
+func (op *NetOptions) ReadMessage(reader io.Reader) (iface.Message, error) {
 	return op.Packer.Unpack(reader, op.Coder)
 }
 
-func (op *NetOptions) WriteMessage(writer io.Writer, msg message.Message) error {
+func (op *NetOptions) WriteMessage(writer io.Writer, msg iface.Message) error {
 	return op.Packer.Pack(writer, op.Coder, msg)
 }
 
-func (op *NetOptions) PostEvent(ev Event) {
-	op.CB.EventCB(ev)
+func (op *NetOptions) PostEvent(ev iface.Event) {
+	op.Worker.Put(ev.Session(), func() {
+		op.CB.EventCB(ev)
+	})
 }

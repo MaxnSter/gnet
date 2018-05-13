@@ -5,13 +5,13 @@ import (
 	"errors"
 	"io"
 
-	"github.com/MaxnSter/gnet/codec"
+	"github.com/MaxnSter/gnet/iface"
 	"github.com/MaxnSter/gnet/message"
 	"github.com/MaxnSter/gnet/pack"
 )
 
 var (
-	_ pack.Packer = (*tlvPacker)(nil)
+	_ iface.Packer = (*tlvPacker)(nil)
 )
 
 const (
@@ -31,7 +31,7 @@ const (
 type tlvPacker struct {
 }
 
-func (p *tlvPacker) Unpack(reader io.Reader, c codec.Coder) (msg message.Message, err error) {
+func (p *tlvPacker) Unpack(reader io.Reader, c iface.Coder) (msg iface.Message, err error) {
 
 	//read length of the Length
 	lengthBuf := make([]byte, LengthBytes)
@@ -64,10 +64,10 @@ func (p *tlvPacker) Unpack(reader io.Reader, c codec.Coder) (msg message.Message
 		return nil, err
 	}
 
-	return msgNew.(message.Message), nil
+	return msgNew.(iface.Message), nil
 }
 
-func (p *tlvPacker) Pack(writer io.Writer, c codec.Coder, msg message.Message) error {
+func (p *tlvPacker) Pack(writer io.Writer, c iface.Coder, msg iface.Message) error {
 	msgId := msg.ID()
 
 	var buf []byte

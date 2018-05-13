@@ -6,7 +6,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/MaxnSter/gnet/message"
+	"github.com/MaxnSter/gnet/iface"
 )
 
 type TcpSession struct {
@@ -20,7 +20,7 @@ type TcpSession struct {
 
 	closeCh chan struct{}
 	wg      *sync.WaitGroup
-	sendCh  chan message.Message
+	sendCh  chan iface.Message
 	raw     net.Conn
 	ctx     sync.Map
 
@@ -34,7 +34,7 @@ func NewTcpSession(id int64, netOp *NetOptions, conn net.Conn, onCloseDone func(
 		raw:         conn,
 		onCloseDone: onCloseDone,
 		closeCh:     make(chan struct{}),
-		sendCh:      make(chan message.Message, 100), // TODO
+		sendCh:      make(chan iface.Message, 100), // TODO
 		wg:          &sync.WaitGroup{},
 		guard:       &sync.Mutex{},
 	}
@@ -42,6 +42,10 @@ func NewTcpSession(id int64, netOp *NetOptions, conn net.Conn, onCloseDone func(
 
 func (s *TcpSession) SetManager(m *TcpServer) {
 	s.manager = m
+}
+
+func (s *TcpSession) ID() int64 {
+	return s.id
 }
 
 func (s *TcpSession) Start() {
@@ -120,7 +124,7 @@ func (s *TcpSession) readLoop() {
 			panic(err)
 		}
 
-		s.netOp.PostEvent(&MessageEvent{s, msg})
+		s.netOp.PostEvent(&iface.MessageEvent{EventSes: s, Msg: msg})
 	}
 }
 
@@ -156,7 +160,7 @@ func (s *TcpSession) StoreCtx(k, v interface{}) {
 	s.ctx.Store(k, v)
 }
 
-func (s *TcpSession) Send(msg message.Message) {
+func (s *TcpSession) Send(msg iface.Message) {
 	//TODO make it never blocking
 	s.sendCh <- msg
 }

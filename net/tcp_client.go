@@ -42,9 +42,14 @@ func (client *TcpClient) Start() error {
 		return err
 	}
 
+	//start new session
 	client.raw = conn
 	client.wg.Add(1)
 	go client.onNewSession(conn)
+
+	//start worker pool
+	//TODO client only need one loop
+	client.netOp.Worker.Start()
 
 	client.guard.Lock()
 	client.started = true
@@ -70,6 +75,9 @@ func (client *TcpClient) Run() {
 
 	//wait for session to stop
 	client.wg.Wait()
+
+	//close worker pool wait close Done
+	<-client.netOp.Worker.Stop()
 }
 
 func (client *TcpClient) Stop() {
@@ -86,7 +94,7 @@ func (client *TcpClient) Stop() {
 	client.session.Close()
 }
 
-func (client *TcpClient) StartAndRun()  {
+func (client *TcpClient) StartAndRun() {
 	if err := client.Start(); err != nil {
 		panic(err)
 	}

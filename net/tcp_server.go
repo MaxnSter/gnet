@@ -51,9 +51,13 @@ func (server *TcpServer) Start() error {
 		return err
 	}
 
+	//start accept
 	server.listener = l
 	server.wg.Add(1)
 	go server.accept()
+
+	//start worker pool
+	server.options.Worker.Start()
 
 	server.guard.Lock()
 	server.started = true
@@ -135,7 +139,11 @@ func (server *TcpServer) Run() {
 	}
 	server.guard.Unlock()
 
+	//wait for listener and all session close
 	server.wg.Wait()
+
+	//close workerPool and wait for close Done
+	<-server.options.Worker.Stop()
 
 	//TODO release all resource
 	server.guard.Lock()
