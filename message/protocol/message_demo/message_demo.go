@@ -3,12 +3,13 @@ package message_demo
 import (
 	"reflect"
 
+	"github.com/MaxnSter/gnet/iface"
 	"github.com/MaxnSter/gnet/message"
 	"github.com/MaxnSter/gnet/message/protocol"
 )
 
 var (
-	_ message.Message = (*DemoMessage)(nil)
+	_ iface.Message = (*DemoMessage)(nil)
 )
 
 const (

@@ -55,7 +55,7 @@ func (p *tlvPacker) Unpack(reader io.Reader, c iface.Coder) (msg iface.Message, 
 
 	//get Type(msgId) and new a message
 	msgId := binary.LittleEndian.Uint32(body)
-	msgNew := message.MustGetMsgMeta(msgId).NewType()
+	msgNew := message.MustGetMsgMeta(msgId).NewType()	//TODO don't import packet message
 
 	//decode
 	body = body[TypeBytes:]
