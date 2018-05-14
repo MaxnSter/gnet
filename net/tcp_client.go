@@ -45,7 +45,7 @@ func (client *TcpClient) Start() error {
 	//start new session
 	client.raw = conn
 	client.wg.Add(1)
-	go client.onNewSession(conn)
+	go client.onNewSession(conn.(*net.TCPConn))
 
 	//start worker pool
 	//TODO client only need one loop
@@ -57,7 +57,7 @@ func (client *TcpClient) Start() error {
 	return nil
 }
 
-func (client *TcpClient) onNewSession(conn net.Conn) {
+func (client *TcpClient) onNewSession(conn *net.TCPConn) {
 	s := NewTcpSession(0, &client.netOp, conn, func(s *TcpSession) {
 		client.wg.Done()
 	})

@@ -88,6 +88,9 @@ func (s *TcpSession) Start() {
 // 正确关闭tcp连接的做法
 // correct  sender:		send() + shutdown(wr) + read()->0 + close socket
 // correct  receiver:	read()->0 + nothing more to send -> close socket
+// 流程如下->
+// sender:shutdown(wr) -> receiver:read(0) -> receiver:send over and close socket ->
+// sender:read(0) -> sender:close socket -> socket正常关闭
 func (s *TcpSession) Close() {
 	s.guard.Lock()
 	if s.closed {
@@ -151,6 +154,7 @@ func (s *TcpSession) writeLoop() {
 		}
 
 		//shutdown write
+		//TODO shutdown write之后,给readLoop一个超时,指定时间内未触发io.EOF则强制关闭
 		s.raw.CloseWrite()
 		s.wg.Done()
 	}()

@@ -46,18 +46,13 @@ func (server *TcpServer) Start() error {
 	}
 	server.guard.Unlock()
 
-	tcpAddr, err := net.ResolveTCPAddr("tcp", server.addr)
-	if err != nil {
-		panic(err)
-	}
-
-	l, err := net.ListenTCP("tcp", tcpAddr)
+	l, err := net.Listen("tcp", server.addr)
 	if err != nil {
 		return err
 	}
 
 	//start accept
-	server.listener = l
+	server.listener = l.(*net.TCPListener)
 	server.wg.Add(1)
 	go server.accept()
 
