@@ -148,6 +148,7 @@ func (tm *timerManager) run() {
 		case <-tm.closeCh:
 			return
 		case <-loopTimer.Timer.C:
+			loopTimer.SCR()
 			tm.expired(&expiredTNode)
 		}
 	}
