@@ -3,8 +3,11 @@ package net
 import (
 	"errors"
 	"net"
+	"os"
+	"os/signal"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
 )
 
@@ -134,6 +137,14 @@ func (server *TcpServer) Run() {
 		panic("server not started!")
 	}
 	server.guard.Unlock()
+
+	//TCP_NODELAY default true
+	//ADDR_REUSE default setted
+
+	//ignore SIGPIPE
+	signal.Ignore(syscall.SIGPIPE)
+
+	//TODO catch signal...
 
 	//wait for listener and all session close
 	server.wg.Wait()
