@@ -12,16 +12,14 @@ type NetOptions struct {
 	Worker iface.WorkerPool
 	CB     iface.UserEventCB
 
-	OnConnect     OnConnectedFunc
-	OnAccepted    OnAcceptedFunc
-	OnClose       OnSessionCloseFunc
-	OnServerClose OnServerClosedFunc
+	OnConnected    OnConnectedFunc
+	OnClose        OnSessionCloseFunc
+	OnServerClosed OnServerClosedFunc
 
 	//TODO more, such as socket options...
 }
 
 type OnConnectedFunc func(session *TcpSession)
-type OnAcceptedFunc func(session *TcpSession)
 type OnSessionCloseFunc func(session *TcpSession)
 type OnServerClosedFunc func()
 

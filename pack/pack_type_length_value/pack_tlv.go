@@ -8,6 +8,7 @@ import (
 	"github.com/MaxnSter/gnet/iface"
 	"github.com/MaxnSter/gnet/message"
 	"github.com/MaxnSter/gnet/pack"
+	"github.com/MaxnSter/gnet/util"
 )
 
 var (
@@ -37,6 +38,11 @@ func (p *tlvPacker) Unpack(reader io.Reader, c iface.Coder) (msg iface.Message, 
 	lengthBuf := make([]byte, LengthBytes)
 	_, err = io.ReadFull(reader, lengthBuf)
 	if err != nil {
+		//remote close socket
+		if err == io.ErrUnexpectedEOF {
+			return nil, io.EOF
+		}
+
 		return nil, err
 	}
 
@@ -91,13 +97,13 @@ func (p *tlvPacker) Pack(writer io.Writer, c iface.Coder, msg iface.Message) err
 	copy(pack[(LengthBytes+TypeBytes):], buf)
 
 	//write to writer
-	//TODO must write fully
-	if _, err := writer.Write(pack); err != nil {
+	if err := util.WriteFull(writer, pack); err != nil {
 		return err
 	}
 
 	return nil
 }
+
 
 func (p *tlvPacker) TypeName() string {
 	return TlvPackerName

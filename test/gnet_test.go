@@ -14,7 +14,7 @@ import (
 func TestMessagePack(t *testing.T) {
 	packer := pack.MustGetPacker(pack_type_length_value.TlvPackerName)
 	coder := codec.MustGetCoder(codec_json.CoderJsonTypeName)
-	message := message_demo.NewDemoMessage("123")
+	message := message_demo.NewDemoMessage("12dsgnijgongoigasdlgnaerwoghisdognaeotraierhgoefnhao3")
 
 	b := new(bytes.Buffer)
 	err := packer.Pack(b, coder, message)
@@ -32,7 +32,7 @@ func TestMessagePack(t *testing.T) {
 		t.Fatal("type")
 	}
 
-	if msg.Val != "123" {
+	if msg.Val != "12dsgnijgongoigasdlgnaerwoghisdognaeotraierhgoefnhao3" {
 		t.Fatal("val")
 	}
 

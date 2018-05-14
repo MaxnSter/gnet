@@ -12,7 +12,7 @@ type TcpServer struct {
 	options  NetOptions
 	addr     string
 	name     string
-	listener net.Listener
+	listener *net.TCPListener
 
 	sessions sync.Map
 	idGen    int64
@@ -46,7 +46,12 @@ func (server *TcpServer) Start() error {
 	}
 	server.guard.Unlock()
 
-	l, err := net.Listen("tcp", server.addr)
+	tcpAddr, err := net.ResolveTCPAddr("tcp", server.addr)
+	if err != nil {
+		panic(err)
+	}
+
+	l, err := net.ListenTCP("tcp", tcpAddr)
 	if err != nil {
 		return err
 	}
@@ -83,12 +88,11 @@ func (server *TcpServer) accept() {
 
 		select {
 		case <-server.stopCh:
-
 			return
 		default:
 		}
 
-		conn, err := server.listener.Accept()
+		conn, err := server.listener.AcceptTCP()
 		if err != nil {
 			if err, ok := err.(net.Error); ok && err.Temporary() {
 
@@ -114,7 +118,7 @@ func (server *TcpServer) accept() {
 	}
 }
 
-func (server *TcpServer) onNewConnection(conn net.Conn) {
+func (server *TcpServer) onNewConnection(conn *net.TCPConn) {
 	sid := atomic.AddInt64(&server.idGen, 1)
 	session := NewTcpSession(sid, &server.options, conn, func(s *TcpSession) {
 		//after session close done
@@ -124,9 +128,6 @@ func (server *TcpServer) onNewConnection(conn net.Conn) {
 	session.SetManager(server)
 	server.sessions.Store(sid, session)
 
-	if server.options.OnAccepted != nil {
-		server.options.OnAccepted(session)
-	}
 	session.Start()
 }
 
@@ -152,8 +153,8 @@ func (server *TcpServer) Run() {
 	server.stopCh = make(chan struct{})
 	server.guard.Unlock()
 
-	if server.options.OnServerClose != nil {
-		server.options.OnServerClose()
+	if server.options.OnServerClosed != nil {
+		server.options.OnServerClosed()
 	}
 }
 

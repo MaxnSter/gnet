@@ -38,7 +38,7 @@ func WithPacker(packerName string) net.NetOpFunc {
 
 func WithConnectedCB(cb net.OnConnectedFunc) net.NetOpFunc {
 	return func(options *net.NetOptions) {
-		options.OnConnect = cb
+		options.OnConnected = cb
 	}
 }
 
@@ -50,15 +50,10 @@ func WithCloseCB(cb net.OnSessionCloseFunc) net.NetOpFunc {
 
 func WithServerCloseCB(cb net.OnServerClosedFunc) net.NetOpFunc {
 	return func(options *net.NetOptions) {
-		options.OnServerClose = cb
+		options.OnServerClosed = cb
 	}
 }
 
-func WithAcceptCB(cb net.OnAcceptedFunc) net.NetOpFunc {
-	return func(options *net.NetOptions) {
-		options.OnAccepted = cb
-	}
-}
 
 //TODO pointer
 func getDefaultOptions() net.NetOptions {

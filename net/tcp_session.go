@@ -9,6 +9,11 @@ import (
 	"github.com/MaxnSter/gnet/iface"
 )
 
+const (
+	//TODO high water mark and small water mark
+	tcpSendBuf = 100
+)
+
 type TcpSession struct {
 	id      int64
 	manager *TcpServer
@@ -21,20 +26,20 @@ type TcpSession struct {
 	closeCh chan struct{}
 	wg      *sync.WaitGroup
 	sendCh  chan iface.Message
-	raw     net.Conn
+	raw     *net.TCPConn
 	ctx     sync.Map
 
 	onCloseDone func(*TcpSession)
 }
 
-func NewTcpSession(id int64, netOp *NetOptions, conn net.Conn, onCloseDone func(*TcpSession)) *TcpSession {
+func NewTcpSession(id int64, netOp *NetOptions, conn *net.TCPConn, onCloseDone func(*TcpSession)) *TcpSession {
 	return &TcpSession{
 		id:          id,
 		netOp:       netOp,
 		raw:         conn,
 		onCloseDone: onCloseDone,
 		closeCh:     make(chan struct{}),
-		sendCh:      make(chan iface.Message, 100), // TODO
+		sendCh:      make(chan iface.Message, tcpSendBuf),
 		wg:          &sync.WaitGroup{},
 		guard:       &sync.Mutex{},
 	}
@@ -63,19 +68,26 @@ func (s *TcpSession) Start() {
 	go s.writeLoop()
 
 	//callback to user
-	if s.netOp.OnConnect != nil {
-		s.netOp.OnConnect(s)
+	if s.netOp.OnConnected != nil {
+		s.netOp.OnConnected(s)
 	}
 
-	//wait for session close Done
+	//wait for readLoop and writeLoop finish
 	s.wg.Wait()
+
+	//close socket
 	s.raw.Close()
+
+	//tell sessionManager we are done
 	if s.onCloseDone != nil {
 		s.onCloseDone(s)
 	}
 
 }
 
+// 正确关闭tcp连接的做法
+// correct  sender:		send() + shutdown(wr) + read()->0 + close socket
+// correct  receiver:	read()->0 + nothing more to send -> close socket
 func (s *TcpSession) Close() {
 	s.guard.Lock()
 	if s.closed {
@@ -92,7 +104,7 @@ func (s *TcpSession) Close() {
 	//close readLoop
 	close(s.closeCh)
 
-	//close writeLoop
+	//send signal to writeLoop, shutdown wr until nothing more to send
 	s.sendCh <- nil
 }
 
@@ -113,7 +125,8 @@ func (s *TcpSession) readLoop() {
 		}
 
 		msg, err := s.netOp.ReadMessage(s.raw)
-		if err != nil && err == io.EOF {
+		if err != nil {
+
 			if err == io.EOF {
 				//client close socket
 				s.Close()
@@ -132,9 +145,13 @@ func (s *TcpSession) writeLoop() {
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Printf("catch unexpected error:%s", r)
+
+			//通知readLoop 关闭
 			s.Close()
 		}
 
+		//shutdown write
+		s.raw.CloseWrite()
 		s.wg.Done()
 	}()
 
