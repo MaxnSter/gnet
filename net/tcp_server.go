@@ -139,7 +139,7 @@ func (server *TcpServer) Run() {
 	server.guard.Unlock()
 
 	//TCP_NODELAY default true
-	//ADDR_REUSE default setted
+	//SO_REUSEADDR default setted
 
 	//ignore SIGPIPE
 	signal.Ignore(syscall.SIGPIPE)

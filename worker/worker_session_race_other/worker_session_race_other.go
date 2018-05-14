@@ -15,7 +15,10 @@ func init() {
 	worker.RegisterWorkerPool(poolName, NewPoolRaceOther)
 }
 
+//session存在data race,应且频繁与其他session交互
+//此时,一个worker负责所有session的事件处理,比如MMOARPG的逻辑线程
 type poolRaceOther struct {
+	//TODO resizeable channel?
 	queue *basic_event_queue.EventQueue
 }
 
@@ -43,4 +46,13 @@ func (p *poolRaceOther) Put(session iface.NetSession, cb func()) {
 		for p.queue.Put(cb) != nil {
 		}
 	}
+}
+
+func (p *poolRaceOther) TryPut(session iface.NetSession, cb func()) bool {
+
+	if err := p.queue.Put(cb); err != nil {
+		return false
+	}
+
+	return true
 }

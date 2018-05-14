@@ -17,6 +17,8 @@ func init() {
 	worker.RegisterWorkerPool(poolName, NewPoolRaceSelf)
 }
 
+//session存在data race现象,并且几乎没有其他session交互的情况
+//此时某个指定session的事件处理,由某个指定worker负责
 type poolRaceSelf struct {
 	workers []*basic_event_queue.EventQueue
 
@@ -72,4 +74,15 @@ func (p *poolRaceSelf) Put(session iface.NetSession, cb func()) {
 		for w.Put(cb) != nil {
 		}
 	}
+}
+
+func (p *poolRaceSelf) TryPut(session iface.NetSession, cb func()) bool {
+
+	w := p.workers[session.ID()%workerNum]
+
+	if err := w.Put(cb); err != nil {
+		return false
+	}
+
+	return true
 }

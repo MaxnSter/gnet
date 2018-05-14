@@ -6,6 +6,7 @@ type WorkerPool interface {
 
 	//TODO
 	Put(session NetSession, cb func())
+	TryPut(session NetSession, cb func()) bool
 
 	TypeName() string
 }

@@ -18,6 +18,8 @@ func init() {
 	worker.RegisterWorkerPool(poolName, NewPoolNoRace)
 }
 
+//无data race情况
+
 //from fastHttp
 type goChan struct {
 	lastUseTime time.Time
@@ -136,6 +138,16 @@ func (p *poolNoRace) Put(session iface.NetSession, cb func()) {
 		//TODO warning
 		cb()
 	}
+}
+
+func (p *poolNoRace) TryPut(session iface.NetSession, cb func()) bool {
+
+	if ch := p.getCh(); ch != nil {
+		ch.ch <- cb
+		return true
+	}
+
+	return false
 }
 
 func (p *poolNoRace) getCh() *goChan {
