@@ -1,6 +1,7 @@
 package worker_session_norace
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -96,11 +97,13 @@ func (p *poolNoRace) clean(scratch *[]*goChan) {
 
 func (p *poolNoRace) Stop() (done <-chan struct{}) {
 
-	if p.stopCh == nil {
+	select {
+	case <-p.stopCh:
 		panic("pool already stop")
+	default:
 	}
+
 	close(p.stopCh)
-	p.stopCh = nil
 
 	p.lock.Lock()
 	for i := range p.ready {
@@ -132,6 +135,14 @@ func (p *poolNoRace) Stop() (done <-chan struct{}) {
 }
 
 func (p *poolNoRace) Put(session iface.NetSession, cb func()) {
+
+	select {
+	case <-p.stopCh:
+		fmt.Printf("already stop!\n")
+		return
+	default:
+	}
+
 	if ch := p.getCh(); ch != nil {
 		ch.ch <- cb
 	} else {
@@ -201,8 +212,8 @@ func (p *poolNoRace) goroutineFunc(goCh *goChan) {
 		if cb == nil {
 			break
 		}
-
-		if !p.release(p) {
+		cb()
+		if !p.release(goCh) {
 			break
 		}
 

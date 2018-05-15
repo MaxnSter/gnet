@@ -8,7 +8,7 @@ import (
 
 const (
 	poolName  = "poolRaceOther"
-	queueSize = 100
+	queueSize = 500
 )
 
 func init() {
@@ -43,8 +43,7 @@ func (p *poolRaceOther) Stop() (done <-chan struct{}) {
 func (p *poolRaceOther) Put(session iface.NetSession, cb func()) {
 	if err := p.queue.Put(cb); err != nil {
 		//TODO
-		for p.queue.Put(cb) != nil {
-		}
+		p.queue.MustPut(cb)
 	}
 }
 

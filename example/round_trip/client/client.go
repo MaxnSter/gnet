@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/MaxnSter/gnet"
+	"github.com/MaxnSter/gnet/example"
 	"github.com/MaxnSter/gnet/example/round_trip"
 	"github.com/MaxnSter/gnet/iface"
-	"github.com/MaxnSter/gnet/message/protocol"
 	"github.com/MaxnSter/gnet/net"
 )
 
@@ -28,14 +28,14 @@ func main() {
 
 				time.AfterFunc(time.Second, func() {
 
-					msg := &round_trip.RoundTripProto{Id: protocol.ProtoRoundTrip, T1: time.Now().UnixNano(), T2: 0}
+					msg := &round_trip.RoundTripProto{Id: example.ProtoRoundTrip, T1: time.Now().UnixNano(), T2: 0}
 
 					ev.Session().Send(msg)
 				})
 			}
 		},
 		gnet.WithConnectedCB(func(s *net.TcpSession) {
-			msg := &round_trip.RoundTripProto{Id: protocol.ProtoRoundTrip, T1: time.Now().UnixNano(), T2: 0}
+			msg := &round_trip.RoundTripProto{Id: example.ProtoRoundTrip, T1: time.Now().UnixNano(), T2: 0}
 
 			s.Send(msg)
 		}))

@@ -3,8 +3,8 @@ package round_trip
 import (
 	"reflect"
 
+	"github.com/MaxnSter/gnet/example"
 	"github.com/MaxnSter/gnet/message"
-	"github.com/MaxnSter/gnet/message/protocol"
 )
 
 type RoundTripProto struct {
@@ -18,7 +18,7 @@ func (r *RoundTripProto) ID() uint32 {
 }
 
 func init() {
-	message.RegisterMsgMeta(protocol.ProtoRoundTrip, message.NewMsgMeta(
-		protocol.ProtoRoundTrip, reflect.TypeOf((*RoundTripProto)(nil)).Elem(),
+	message.RegisterMsgMeta(example.ProtoRoundTrip, message.NewMsgMeta(
+		example.ProtoRoundTrip, reflect.TypeOf((*RoundTripProto)(nil)).Elem(),
 	))
 }

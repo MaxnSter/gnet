@@ -3,7 +3,6 @@ package net
 import (
 	"errors"
 	"net"
-	"os"
 	"os/signal"
 	"sync"
 	"sync/atomic"

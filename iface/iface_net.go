@@ -2,8 +2,8 @@ package iface
 
 type NetSession interface {
 	ID() int64
-
 	Send(message Message)
+	Stop()
 
 	//LoadCtx(key interface{}) (val interface{})
 	//StoreCtx(key interface{}, val interface{})

@@ -91,7 +91,7 @@ func (s *TcpSession) Start() {
 // 流程如下->
 // sender:shutdown(wr) -> receiver:read(0) -> receiver:send over and close socket ->
 // sender:read(0) -> sender:close socket -> socket正常关闭
-func (s *TcpSession) Close() {
+func (s *TcpSession) Stop() {
 	s.guard.Lock()
 	if s.closed {
 		s.guard.Unlock()
@@ -115,7 +115,7 @@ func (s *TcpSession) readLoop() {
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Printf("catch unexpected error:%s", r)
-			s.Close()
+			s.Stop()
 		}
 
 		s.wg.Done()
@@ -132,7 +132,7 @@ func (s *TcpSession) readLoop() {
 
 			if err == io.EOF {
 				//client close socket
-				s.Close()
+				s.Stop()
 				return
 			}
 
@@ -150,7 +150,7 @@ func (s *TcpSession) writeLoop() {
 			fmt.Printf("catch unexpected error:%s", r)
 
 			//通知readLoop 关闭
-			s.Close()
+			s.Stop()
 		}
 
 		//shutdown write

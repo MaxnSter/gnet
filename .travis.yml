@@ -8,5 +8,6 @@ go:
  - 1.10
 
 script:
- - go test $GOPATH/src/github.com/MaxnSter/gnet/test/*.go
+ - cd $GOPATH/src/github.com/MaxnSter/gnet/
+ - go test ./...
 

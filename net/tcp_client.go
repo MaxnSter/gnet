@@ -91,7 +91,7 @@ func (client *TcpClient) Stop() {
 	client.guard.Unlock()
 
 	//close the session
-	client.session.Close()
+	client.session.Stop()
 }
 
 func (client *TcpClient) StartAndRun() {

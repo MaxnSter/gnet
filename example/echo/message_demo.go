@@ -1,11 +1,11 @@
-package message_demo
+package echo
 
 import (
 	"reflect"
 
+	"github.com/MaxnSter/gnet/example"
 	"github.com/MaxnSter/gnet/iface"
 	"github.com/MaxnSter/gnet/message"
-	"github.com/MaxnSter/gnet/message/protocol"
 )
 
 var (
@@ -13,7 +13,7 @@ var (
 )
 
 const (
-	protocolId = protocol.ProtoDemoMessage
+	protocolId = example.ProtoDemoMessage
 )
 
 type DemoMessage struct {

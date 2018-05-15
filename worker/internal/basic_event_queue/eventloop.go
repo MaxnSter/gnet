@@ -13,9 +13,9 @@ var (
 				fmt.Printf("catch expected error : %s\n", r)
 				debug.PrintStack()
 			}
-
-			cb()
 		}()
+
+		cb()
 	}
 
 	unSafeCallBack = func(cb func()) {
@@ -79,4 +79,8 @@ func (loop *EventQueue) Put(cb func()) error {
 		//TODO
 		return errors.New("queue size limit")
 	}
+}
+
+func (loop *EventQueue) MustPut(cb func()) {
+	loop.queue <- cb
 }

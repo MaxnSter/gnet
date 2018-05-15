@@ -90,16 +90,17 @@ func (tm *timerManager) Stop() {
 	tm.closeCh <- struct{}{}
 }
 
-func (tm *timerManager) AddTimer(expire time.Time, interval time.Duration, cb TimeOutCB) (id int64) {
+func (tm *timerManager) AddTimer(expire time.Time, interval time.Duration, s iface.NetSession, cb TimeOutCB) (id int64) {
 	t := &timerNode{
 		expire:   expire,
 		interval: interval,
+		session:  s,
 		cb:       cb,
 		timerId:  atomic.AddInt64(&tm.timerIdGen, 1),
 	}
 
 	tm.pause()
-	tm.timers.Push(tm)
+	tm.timers.Push(t)
 	tm.resume()
 
 	return t.timerId
@@ -139,7 +140,7 @@ func (tm *timerManager) run() {
 		} else {
 			timeout = _UNTOUCHED
 		}
-		loopTimer.Reset(timeout)
+		loopTimer.SafeReset(timeout)
 
 		select {
 		case <-tm.pauseCh:
@@ -148,6 +149,7 @@ func (tm *timerManager) run() {
 		case <-tm.closeCh:
 			return
 		case <-loopTimer.Timer.C:
+			loopTimer.SCR()
 			tm.expired(&expiredTNode)
 		}
 	}

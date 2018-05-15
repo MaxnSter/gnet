@@ -71,8 +71,8 @@ func (p *poolRaceSelf) Put(session iface.NetSession, cb func()) {
 
 	if err := w.Put(cb); err != nil {
 		//TODO warning
-		for w.Put(cb) != nil {
-		}
+		w.MustPut(cb)
+
 	}
 }
 
