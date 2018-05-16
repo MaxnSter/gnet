@@ -61,6 +61,9 @@ func (server *TcpServer) Start() error {
 	//start worker pool
 	server.options.Worker.Start()
 
+	//start timer
+	server.options.Timer.Start()
+
 	server.guard.Lock()
 	server.started = true
 	server.guard.Unlock()
@@ -150,6 +153,9 @@ func (server *TcpServer) Run() {
 
 	//close workerPool and wait for close Done
 	<-server.options.Worker.Stop()
+
+	//close timer and wait for close Done
+	<-server.options.Timer.Stop()
 
 	//TODO release all resource
 	server.guard.Lock()

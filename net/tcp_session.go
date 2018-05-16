@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/MaxnSter/gnet/iface"
 )
@@ -184,4 +185,20 @@ func (s *TcpSession) StoreCtx(k, v interface{}) {
 func (s *TcpSession) Send(msg iface.Message) {
 	//TODO make it never blocking
 	s.sendCh <- msg
+}
+
+func (s *TcpSession) RunAt(runAt time.Time, cb iface.TimeOutCB) (timerId int64) {
+	return s.netOp.Timer.AddTimer(runAt, 0, s, cb)
+}
+
+func (s *TcpSession) RunAfter(start time.Time, after time.Duration, cb iface.TimeOutCB) (timerId int64) {
+	return s.netOp.Timer.AddTimer(start.Add(after), 0, s, cb)
+}
+
+func (s *TcpSession) RunEvery(runAt time.Time, interval time.Duration, cb iface.TimeOutCB) (timerId int64) {
+	return s.netOp.Timer.AddTimer(runAt, interval, s, cb)
+}
+
+func (s *TcpSession) CancelTimer(timerId int64) {
+	s.netOp.Timer.CancelTimer(timerId)
 }

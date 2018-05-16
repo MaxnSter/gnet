@@ -1,7 +1,7 @@
 package iface
 
 type Event interface {
-	Session() NetSession //TODO
+	Session() NetSession
 	Message() Message
 }
 

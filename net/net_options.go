@@ -11,6 +11,7 @@ type NetOptions struct {
 	Packer iface.Packer
 	Worker iface.WorkerPool
 	CB     iface.UserEventCB
+	Timer  iface.Timer
 
 	OnConnected    OnConnectedFunc
 	OnClose        OnSessionCloseFunc

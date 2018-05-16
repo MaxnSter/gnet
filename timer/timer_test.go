@@ -46,9 +46,9 @@ func TestTimerManager_AddTimer(t *testing.T) {
 	var stopId int64
 	wg.Add(1)
 	stopId = tw.AddTimer(time.Now().Add(5*time.Second), 0, nil, func(i time.Time, session iface.NetSession) {
-		tw.StopTimer(stopId)
+		tw.CancelTimer(stopId)
 		for _, id := range timerIds {
-			tw.StopTimer(id)
+			tw.CancelTimer(id)
 		}
 		wg.Done()
 	})
@@ -78,7 +78,7 @@ func TestTimerManager_Stop(t *testing.T) {
 	var stopId int64
 	wg.Add(1)
 	stopId = tw.AddTimer(time.Now().Add(5*time.Second), 0, nil, func(i time.Time, session iface.NetSession) {
-		tw.StopTimer(stopId)
+		tw.CancelTimer(stopId)
 		tw.Stop()
 		wg.Done()
 	})

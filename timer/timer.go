@@ -16,7 +16,7 @@ type timerNode struct {
 	index    int //heap内部维护
 
 	session iface.NetSession
-	cb      TimeOutCB
+	cb      iface.TimeOutCB
 }
 
 type timerHeap []*timerNode
@@ -55,42 +55,49 @@ func (heap timerHeap) getTimerIdx(timerId int64) int {
 	return -1
 }
 
-type TimeOutCB func(time.Time, iface.NetSession)
 
 const (
 	_UNTOUCHED = time.Duration(math.MaxInt64)
 )
 
+var (
+	_ iface.Timer = (*timerManager)(nil)
+)
+
 type timerManager struct {
-	workers    iface.WorkerPool
-	timers     timerHeap
-	timerIdGen int64
-	pauseCh    chan struct{}
-	resumeCh   chan struct{}
-	closeCh    chan struct{}
+	workers     iface.WorkerPool
+	timers      timerHeap
+	timerIdGen  int64
+	pauseCh     chan struct{}
+	resumeCh    chan struct{}
+	closeCh     chan struct{}
+	closeDoneCh chan struct{}
 }
 
 func NewTimerManager(workers iface.WorkerPool) *timerManager {
 	return &timerManager{
-		workers:  workers,
-		timers:   make([]*timerNode, 0),
-		pauseCh:  make(chan struct{}),
-		resumeCh: make(chan struct{}),
-		closeCh:  make(chan struct{}),
+		workers:     workers,
+		timers:      make([]*timerNode, 0),
+		pauseCh:     make(chan struct{}),
+		resumeCh:    make(chan struct{}),
+		closeCh:     make(chan struct{}),
+		closeDoneCh: make(chan struct{}),
 	}
 }
 
 func (tm *timerManager) Start() {
+
 	heap.Init(&tm.timers)
 	go tm.run()
 }
 
-func (tm *timerManager) Stop() {
-	//TODO return a <-chan ??
+func (tm *timerManager) Stop() (done <-chan struct{}) {
 	tm.closeCh <- struct{}{}
+
+	return tm.closeDoneCh
 }
 
-func (tm *timerManager) AddTimer(expire time.Time, interval time.Duration, s iface.NetSession, cb TimeOutCB) (id int64) {
+func (tm *timerManager) AddTimer(expire time.Time, interval time.Duration, s iface.NetSession, cb iface.TimeOutCB) (id int64) {
 	t := &timerNode{
 		expire:   expire,
 		interval: interval,
@@ -106,7 +113,7 @@ func (tm *timerManager) AddTimer(expire time.Time, interval time.Duration, s ifa
 	return t.timerId
 }
 
-func (tm *timerManager) StopTimer(id int64) {
+func (tm *timerManager) CancelTimer(id int64) {
 	idx := tm.timers.getTimerIdx(id)
 	if idx == -1 {
 		return
@@ -132,6 +139,7 @@ func (tm *timerManager) run() {
 		expiredTNode []*timerNode
 	)
 
+	defer close(tm.closeDoneCh)
 	defer loopTimer.Stop()
 
 	for {

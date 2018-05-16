@@ -7,14 +7,17 @@ import (
 	"github.com/MaxnSter/gnet/net"
 	"github.com/MaxnSter/gnet/pack"
 	_ "github.com/MaxnSter/gnet/pack/pack_type_length_value"
+	"github.com/MaxnSter/gnet/timer"
 	"github.com/MaxnSter/gnet/worker"
+	_ "github.com/MaxnSter/gnet/worker/worker_session_race_other"
 	_ "github.com/MaxnSter/gnet/worker/worker_session_race_self"
 )
 
 const (
-	defaultCoder      = "json"
-	defaultPacker     = "tlv"
-	defaultWorkerPool = "poolRaceSelf"
+	defaultCoder            = "json"
+	defaultPacker           = "tlv"
+	defaultServerWorkerPool = "poolRaceSelf"
+	defaultClientWorkerPool = "poolRaceOther"
 )
 
 func WithWorerPool(poolName string) net.NetOpFunc {
@@ -59,7 +62,7 @@ func getDefaultOptions() net.NetOptions {
 	return net.NetOptions{
 		Packer: pack.MustGetPacker(defaultPacker),
 		Coder:  codec.MustGetCoder(defaultCoder),
-		Worker: worker.MustGetWorkerPool(defaultWorkerPool),
+		Worker: worker.MustGetWorkerPool(defaultServerWorkerPool),
 	}
 }
 
@@ -70,16 +73,19 @@ func NewServer(addr string, name string, cb iface.UserEventCBFunc, options ...ne
 		f(&op)
 	}
 	op.CB = cb
+	op.Timer = timer.NewTimerManager(op.Worker)
 
 	return net.NewTcpServer(addr, name, op)
 }
 
 func NewClient(addr string, cb iface.UserEventCBFunc, options ...net.NetOpFunc) *net.TcpClient {
 	op := getDefaultOptions()
+	WithWorerPool(defaultClientWorkerPool)(&op)
 	for _, f := range options {
 		f(&op)
 	}
 	op.CB = cb
+	op.Timer = timer.NewTimerManager(op.Worker)
 
 	return net.NewTcpClient(addr, op)
 }

@@ -48,7 +48,6 @@ func (client *TcpClient) Start() error {
 	go client.onNewSession(conn.(*net.TCPConn))
 
 	//start worker pool
-	//TODO client only need one loop
 	client.netOp.Worker.Start()
 
 	client.guard.Lock()
@@ -78,6 +77,9 @@ func (client *TcpClient) Run() {
 
 	//close worker pool wait close Done
 	<-client.netOp.Worker.Stop()
+
+	//close timer and wait for close Done
+	<-client.netOp.Timer.Stop()
 }
 
 func (client *TcpClient) Stop() {
@@ -100,4 +102,16 @@ func (client *TcpClient) StartAndRun() {
 	}
 
 	client.Run()
+}
+
+func (client *TcpClient) RunAt() {
+
+}
+
+func (client *TcpClient) RunAfter() {
+
+}
+
+func (client *TcpClient) RunEvery() {
+
 }

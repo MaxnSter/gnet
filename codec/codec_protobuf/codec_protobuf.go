@@ -26,7 +26,7 @@ func (p *coderProtobuf) Encode(msg interface{}) (data []byte, err error) {
 	if protoMsg, ok := msg.(proto.Message); ok {
 		return proto.Marshal(protoMsg)
 	} else {
-		//TODO
+		//TODO errors
 		return nil, errors.New("type assert error")
 	}
 }

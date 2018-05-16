@@ -5,8 +5,8 @@ type NetSession interface {
 	Send(message Message)
 	Stop()
 
-	//LoadCtx(key interface{}) (val interface{})
-	//StoreCtx(key interface{}, val interface{})
+	LoadCtx(key interface{}) (val interface{}, ok bool)
+	StoreCtx(key interface{}, val interface{})
 }
 
 type SessionManager interface {
