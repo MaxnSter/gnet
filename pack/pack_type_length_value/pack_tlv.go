@@ -61,7 +61,7 @@ func (p *tlvPacker) Unpack(reader io.Reader, c iface.Coder) (msg iface.Message, 
 
 	//get Type(msgId) and new a message
 	msgId := binary.LittleEndian.Uint32(body)
-	msgNew := message.MustGetMsgMeta(msgId).NewType()	//TODO don't import packet message
+	msgNew := message.MustGetMsgMeta(msgId).NewType() //TODO don't import packet message
 
 	//decode
 	body = body[TypeBytes:]
@@ -74,7 +74,7 @@ func (p *tlvPacker) Unpack(reader io.Reader, c iface.Coder) (msg iface.Message, 
 }
 
 func (p *tlvPacker) Pack(writer io.Writer, c iface.Coder, msg iface.Message) error {
-	msgId := msg.ID()
+	msgId := msg.GetId()
 
 	var buf []byte
 	buf, err := c.Encode(msg)
@@ -103,7 +103,6 @@ func (p *tlvPacker) Pack(writer io.Writer, c iface.Coder, msg iface.Message) err
 
 	return nil
 }
-
 
 func (p *tlvPacker) TypeName() string {
 	return TlvPackerName

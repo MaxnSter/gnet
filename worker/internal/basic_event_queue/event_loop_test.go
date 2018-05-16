@@ -22,7 +22,8 @@ func TestEventQueue_Put(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
 		q.Put(func() {
-			for i := 0; i <  math.MaxInt16; i++{}
+			for i := 0; i < math.MaxInt16; i++ {
+			}
 			wg.Done()
 		})
 	}
@@ -53,7 +54,8 @@ func TestEventQueue_Stop(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
 		q.Put(func() {
-			for i := 0; i <  math.MaxUint8; i++{}
+			for i := 0; i < math.MaxUint8; i++ {
+			}
 			wg.Done()
 		})
 	}
@@ -70,8 +72,8 @@ func TestEventQueue_Stop(t *testing.T) {
 	}()
 
 	select {
-	case <- time.After(10 * time.Second):
-	case <- wgDoneCh:
+	case <-time.After(10 * time.Second):
+	case <-wgDoneCh:
 		assert.Fail(t, "queue not stopped")
 	}
 }

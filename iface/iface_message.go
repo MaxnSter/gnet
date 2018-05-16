@@ -1,5 +1,5 @@
 package iface
 
 type Message interface {
-	ID() uint32
+	GetId() uint32
 }

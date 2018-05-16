@@ -16,11 +16,10 @@ func RegisterWorkerPool(name string, creator workerPoolCreator) {
 	workerPools[name] = creator
 }
 
-func MustGetWorkerPool(name string) iface.WorkerPool{
+func MustGetWorkerPool(name string) iface.WorkerPool {
 	if creator, ok := workerPools[name]; !ok {
 		panic("WorkerPool not register, name : " + name)
 	} else {
 		return creator()
 	}
 }
-

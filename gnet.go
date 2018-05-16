@@ -54,7 +54,6 @@ func WithServerCloseCB(cb net.OnServerClosedFunc) net.NetOpFunc {
 	}
 }
 
-
 //TODO pointer
 func getDefaultOptions() net.NetOptions {
 	return net.NetOptions{

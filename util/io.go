@@ -2,7 +2,7 @@ package util
 
 import "io"
 
-func WriteFull(writer io.Writer, data []byte) error  {
+func WriteFull(writer io.Writer, data []byte) error {
 	dataLen := len(data)
 	written := 0
 

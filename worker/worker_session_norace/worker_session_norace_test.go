@@ -51,7 +51,8 @@ func TestPoolNoRace_Stop(t *testing.T) {
 	for i := 0; i < 10000; i++ {
 		wg.Add(1)
 		q.Put(nil, func() {
-			for i := 0; i <  math.MaxUint8; i++{}
+			for i := 0; i < math.MaxUint8; i++ {
+			}
 			wg.Done()
 		})
 	}
@@ -68,8 +69,8 @@ func TestPoolNoRace_Stop(t *testing.T) {
 	}()
 
 	select {
-	case <- time.After(10 * time.Second):
-	case <- wgDoneCh:
+	case <-time.After(10 * time.Second):
+	case <-wgDoneCh:
 		assert.Fail(t, "queue not stopped")
 	}
 }
@@ -84,7 +85,8 @@ func TestPoolNoRace_Stop2(t *testing.T) {
 	for i := 0; i < 500000; i++ {
 		wg.Add(1)
 		q.Put(nil, func() {
-			for i := 0; i <  math.MaxInt16; i++{}
+			for i := 0; i < math.MaxInt16; i++ {
+			}
 			wg.Done()
 		})
 	}
@@ -97,8 +99,8 @@ func TestPoolNoRace_Stop2(t *testing.T) {
 	}()
 
 	select {
-	case <- time.After(60 * time.Second):
+	case <-time.After(60 * time.Second):
 		assert.Fail(t, "queue stopped before all task finished!")
-	case <- wgDoneCh:
+	case <-wgDoneCh:
 	}
 }

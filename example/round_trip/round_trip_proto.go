@@ -13,7 +13,7 @@ type RoundTripProto struct {
 	T2 int64
 }
 
-func (r *RoundTripProto) ID() uint32 {
+func (r *RoundTripProto) GetId() uint32 {
 	return r.Id
 }
 
