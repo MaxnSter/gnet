@@ -76,7 +76,7 @@ func (loop *EventQueue) Put(cb func()) error {
 	case loop.queue <- cb:
 		return nil
 	default:
-		//TODO
+		//TODO logs
 		return errors.New("queue size limit")
 	}
 }

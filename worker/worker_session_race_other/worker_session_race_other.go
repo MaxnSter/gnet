@@ -42,7 +42,7 @@ func (p *poolRaceOther) Stop() (done <-chan struct{}) {
 
 func (p *poolRaceOther) Put(session iface.NetSession, cb func()) {
 	if err := p.queue.Put(cb); err != nil {
-		//TODO
+		//TODO logs
 		p.queue.MustPut(cb)
 	}
 }

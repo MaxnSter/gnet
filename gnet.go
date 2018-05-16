@@ -20,7 +20,7 @@ const (
 	defaultClientWorkerPool = "poolRaceOther"
 )
 
-func WithWorerPool(poolName string) net.NetOpFunc {
+func WithWorkerPool(poolName string) net.NetOpFunc {
 	return func(options *net.NetOptions) {
 		options.Worker = worker.MustGetWorkerPool(poolName)
 	}
@@ -57,7 +57,6 @@ func WithServerCloseCB(cb net.OnServerClosedFunc) net.NetOpFunc {
 	}
 }
 
-//TODO pointer
 func getDefaultOptions() net.NetOptions {
 	return net.NetOptions{
 		Packer: pack.MustGetPacker(defaultPacker),
@@ -66,7 +65,7 @@ func getDefaultOptions() net.NetOptions {
 	}
 }
 
-//TODO change return
+//TODO unp, http...
 func NewServer(addr string, name string, cb iface.UserEventCBFunc, options ...net.NetOpFunc) *net.TcpServer {
 	op := getDefaultOptions()
 	for _, f := range options {
@@ -75,17 +74,17 @@ func NewServer(addr string, name string, cb iface.UserEventCBFunc, options ...ne
 	op.CB = cb
 	op.Timer = timer.NewTimerManager(op.Worker)
 
-	return net.NewTcpServer(addr, name, op)
+	return net.NewTcpServer(addr, name, &op)
 }
 
 func NewClient(addr string, cb iface.UserEventCBFunc, options ...net.NetOpFunc) *net.TcpClient {
 	op := getDefaultOptions()
-	WithWorerPool(defaultClientWorkerPool)(&op)
+	WithWorkerPool(defaultClientWorkerPool)(&op)
 	for _, f := range options {
 		f(&op)
 	}
 	op.CB = cb
 	op.Timer = timer.NewTimerManager(op.Worker)
 
-	return net.NewTcpClient(addr, op)
+	return net.NewTcpClient(addr, &op)
 }

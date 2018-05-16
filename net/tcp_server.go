@@ -11,9 +11,9 @@ import (
 )
 
 type TcpServer struct {
-	options  NetOptions
 	addr     string
 	name     string
+	options  *NetOptions
 	listener *net.TCPListener
 
 	sessions sync.Map
@@ -27,7 +27,7 @@ type TcpServer struct {
 	stopCh chan struct{}
 }
 
-func NewTcpServer(addr, name string, options NetOptions) *TcpServer {
+func NewTcpServer(addr, name string, options *NetOptions) *TcpServer {
 	return &TcpServer{
 		options:  options,
 		addr:     addr,
@@ -74,10 +74,9 @@ func (server *TcpServer) accept() {
 	defer func() {
 
 		if r := recover(); r != nil {
-			//TODO log err
+			//TODO logs
 		}
 
-		//TODO tell caller we are stopping
 		server.listener.Close()
 		server.wg.Done()
 	}()
@@ -157,7 +156,7 @@ func (server *TcpServer) Run() {
 	//close timer and wait for close Done
 	<-server.options.Timer.Stop()
 
-	//TODO release all resource
+	//release all resource
 	server.guard.Lock()
 	server.started = false
 	server.stopped = false

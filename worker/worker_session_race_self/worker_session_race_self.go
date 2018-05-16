@@ -70,7 +70,7 @@ func (p *poolRaceSelf) Put(session iface.NetSession, cb func()) {
 	w := p.workers[session.ID()%workerNum]
 
 	if err := w.Put(cb); err != nil {
-		//TODO warning
+		//TODO logs
 		w.MustPut(cb)
 
 	}

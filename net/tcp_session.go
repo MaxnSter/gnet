@@ -137,7 +137,7 @@ func (s *TcpSession) readLoop() {
 				return
 			}
 
-			//TODO
+			//TODO logs
 			panic(err)
 		}
 
@@ -168,7 +168,7 @@ func (s *TcpSession) writeLoop() {
 
 		err = s.netOp.WriteMessage(s.raw, msg)
 		if err != nil {
-			//TODO
+			//TODO logs
 			panic(err)
 		}
 	}
@@ -183,7 +183,6 @@ func (s *TcpSession) StoreCtx(k, v interface{}) {
 }
 
 func (s *TcpSession) Send(msg iface.Message) {
-	//TODO make it never blocking
 	s.sendCh <- msg
 }
 

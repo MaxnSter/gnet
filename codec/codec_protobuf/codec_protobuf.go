@@ -35,6 +35,7 @@ func (p *coderProtobuf) Decode(data []byte, pMsg interface{}) error {
 	if protoMsg, ok := pMsg.(proto.Message); ok {
 		return proto.Unmarshal(data, protoMsg)
 	} else {
+		//TODO errors
 		return errors.New("type assert error")
 	}
 }

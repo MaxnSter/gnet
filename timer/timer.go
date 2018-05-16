@@ -170,7 +170,6 @@ func (tm *timerManager) handleExpired(tNode *timerNode, t time.Time) {
 
 	if !tm.workers.TryPut(tNode.session, f) {
 		//must be async
-		//TODO warning
 		go tm.workers.Put(tNode.session, f)
 	}
 }

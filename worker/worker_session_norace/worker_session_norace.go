@@ -146,7 +146,7 @@ func (p *poolNoRace) Put(session iface.NetSession, cb func()) {
 	if ch := p.getCh(); ch != nil {
 		ch.ch <- cb
 	} else {
-		//TODO warning
+		//TODO logs
 		cb()
 	}
 }

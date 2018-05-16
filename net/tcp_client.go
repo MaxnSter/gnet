@@ -8,7 +8,7 @@ import (
 
 type TcpClient struct {
 	addr  string
-	netOp NetOptions
+	netOp *NetOptions
 
 	raw     net.Conn
 	session *TcpSession
@@ -19,7 +19,7 @@ type TcpClient struct {
 	stopped bool
 }
 
-func NewTcpClient(addr string, op NetOptions) *TcpClient {
+func NewTcpClient(addr string, op *NetOptions) *TcpClient {
 	return &TcpClient{
 		addr:  addr,
 		netOp: op,
