@@ -21,5 +21,6 @@ func TestEncodeAndDecode(t *testing.T) {
 	assert.NotNil(t, newInfo)
 
 	assert.Equal(t, "proto", newInfo.Msg)
+	assert.Equal(t, uint32(1), newInfo.Id)
 
 }

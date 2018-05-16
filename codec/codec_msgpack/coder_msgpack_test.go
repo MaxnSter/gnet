@@ -1,4 +1,4 @@
-package codec_json
+package codec_msgpack
 
 import (
 	"testing"
@@ -7,16 +7,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestEncodeAndDecode(t *testing.T) {
-
+func TestCoderMsgpack_DecodeAndEchode(t *testing.T) {
 	type Info struct {
-		Id uint32
+		Id  uint32
 		Msg string
 	}
 
-	coder := codec.MustGetCoder("json")
-
-	data, err := coder.Encode(&Info{Id: 1, Msg: "json"})
+	coder := codec.MustGetCoder("msgpack")
+	data, err := coder.Encode(&Info{Id: 1, Msg: "msgpack"})
 	assert.Nil(t, err, err)
 
 	newInfo := new(Info)
@@ -24,8 +22,6 @@ func TestEncodeAndDecode(t *testing.T) {
 	assert.Nil(t, err, err)
 	assert.NotNil(t, newInfo)
 
-	assert.Equal(t, "json", newInfo.Msg)
 	assert.Equal(t, uint32(1), newInfo.Id)
-
+	assert.Equal(t, "msgpack", newInfo.Msg)
 }
-
