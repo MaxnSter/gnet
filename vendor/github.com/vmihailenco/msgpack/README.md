@@ -1,69 +1,87 @@
-# MessagePack encoding for Golang
-
-[![Build Status](https://travis-ci.org/vmihailenco/msgpack.svg?branch=v2)](https://travis-ci.org/vmihailenco/msgpack)
-[![GoDoc](https://godoc.org/github.com/vmihailenco/msgpack?status.svg)](https://godoc.org/github.com/vmihailenco/msgpack)
+Msgpack implementation for Golang [![Build Status](https://travis-ci.org/vmihailenco/msgpack.svg)](https://travis-ci.org/vmihailenco/msgpack)
+===
 
 Supports:
-- Primitives, arrays, maps, structs, time.Time and interface{}.
+- Primitives, arrays, maps, structs and interface{}.
+- time.Time.
 - Appengine *datastore.Key and datastore.Cursor.
-- [CustomEncoder](https://godoc.org/github.com/vmihailenco/msgpack#example-CustomEncoder)/CustomDecoder interfaces for custom encoding.
-- [Extensions](https://godoc.org/github.com/vmihailenco/msgpack#example-RegisterExt) to encode type information.
-- Renaming fields via `msgpack:"my_field_name"`.
-- Omitting individual empty fields via `msgpack:",omitempty"` tag or all [empty fields in a struct](https://godoc.org/github.com/vmihailenco/msgpack#example-Marshal--OmitEmpty).
-- [Map keys sorting](https://godoc.org/github.com/vmihailenco/msgpack#Encoder.SortMapKeys).
-- Encoding/decoding all [structs as arrays](https://godoc.org/github.com/vmihailenco/msgpack#Encoder.StructAsArray) or [individual structs](https://godoc.org/github.com/vmihailenco/msgpack#example-Marshal--AsArray).
-- [Encoder.UseJSONTag](https://godoc.org/github.com/vmihailenco/msgpack#Encoder.UseJSONTag) with [Decoder.UseJSONTag](https://godoc.org/github.com/vmihailenco/msgpack#Decoder.UseJSONTag) can turn msgpack into drop-in replacement for JSON.
-- Simple but very fast and efficient [queries](https://godoc.org/github.com/vmihailenco/msgpack#example-Decoder-Query).
+- Extensions for user defined types.
+- Tags.
 
-API docs: https://godoc.org/github.com/vmihailenco/msgpack.
-Examples: https://godoc.org/github.com/vmihailenco/msgpack#pkg-examples.
+API docs: http://godoc.org/gopkg.in/vmihailenco/msgpack.v1
 
-## Installation
+Installation
+------------
 
 Install:
 
-```shell
-go get -u github.com/vmihailenco/msgpack
-```
+    go get gopkg.in/vmihailenco/msgpack.v1
 
-## Quickstart
+Usage
+-----
 
-```go
-func ExampleMarshal() {
-	type Item struct {
-		Foo string
-	}
+Examples:
 
-	b, err := msgpack.Marshal(&Item{Foo: "bar"})
-	if err != nil {
-		panic(err)
-	}
+    func ExampleEncode() {
+        b, err := msgpack.Marshal(true)
+        fmt.Printf("%v %#v\n", err, b)
+        // Output: <nil> []byte{0xc3}
+    }
 
-	var item Item
-	err = msgpack.Unmarshal(b, &item)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(item.Foo)
-	// Output: bar
-}
-```
+    func ExampleDecode() {
+        var out bool
+        err := msgpack.Unmarshal([]byte{0xc3}, &out)
+        fmt.Println(err, out)
+        // Output: <nil> true
+    }
 
-## Benchmark
+    func ExampleMapStringInterface() {
+        in := map[string]interface{}{"foo": 1, "hello": "world"}
+        b, err := msgpack.Marshal(in)
+        _ = err
 
-```
-BenchmarkStructVmihailencoMsgpack-4   	  200000	     12814 ns/op	    2128 B/op	      26 allocs/op
-BenchmarkStructUgorjiGoMsgpack-4      	  100000	     17678 ns/op	    3616 B/op	      70 allocs/op
-BenchmarkStructUgorjiGoCodec-4        	  100000	     19053 ns/op	    7346 B/op	      23 allocs/op
-BenchmarkStructJSON-4                 	   20000	     69438 ns/op	    7864 B/op	      26 allocs/op
-BenchmarkStructGOB-4                  	   10000	    104331 ns/op	   14664 B/op	     278 allocs/op
-```
+        var out map[string]interface{}
+        err = msgpack.Unmarshal(b, &out)
+        fmt.Printf("%v %#v\n", err, out)
+        // Output: <nil> map[string]interface {}{"foo":1, "hello":"world"}
+    }
 
-## Howto
+    func ExampleRecursiveMapStringInterface() {
+        buf := &bytes.Buffer{}
 
-Please go through [examples](https://godoc.org/github.com/vmihailenco/msgpack#pkg-examples) to get an idea how to use this package.
+        enc := msgpack.NewEncoder(buf)
+        in := map[string]interface{}{"foo": map[string]interface{}{"hello": "world"}}
+        _ = enc.Encode(in)
 
-## See also
+        dec := msgpack.NewDecoder(buf)
+        dec.DecodeMapFunc = func(d *msgpack.Decoder) (interface{}, error) {
+            n, err := d.DecodeMapLen()
+            if err != nil {
+                return nil, err
+            }
 
-- [Golang PostgreSQL ORM](https://github.com/go-pg/pg)
-- [Golang message task queue](https://github.com/go-msgqueue/msgqueue)
+            m := make(map[string]interface{}, n)
+            for i := 0; i < n; i++ {
+                mk, err := d.DecodeString()
+                if err != nil {
+                    return nil, err
+                }
+
+                mv, err := d.DecodeInterface()
+                if err != nil {
+                    return nil, err
+                }
+
+                m[mk] = mv
+            }
+            return m, nil
+        }
+        out, err := dec.DecodeInterface()
+        fmt.Printf("%v %#v\n", err, out)
+        // Output: <nil> map[string]interface {}{"foo":map[string]interface {}{"hello":"world"}}
+    }
+
+Extensions
+----------
+
+Look at [appengine.go](https://github.com/vmihailenco/msgpack/blob/master/appengine.go) for example.

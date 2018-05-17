@@ -1,13 +1,14 @@
 package net
 
 import (
-	"fmt"
 	"io"
 	"net"
 	"sync"
 	"time"
 
 	"github.com/MaxnSter/gnet/iface"
+	"github.com/MaxnSter/gnet/logger"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -63,6 +64,8 @@ func (s *TcpSession) Start() {
 	s.started = true
 	s.guard.Unlock()
 
+	logger.WithField("sessionId", s.id).Debugln("session start")
+
 	//start loop
 	s.wg.Add(2)
 	go s.readLoop()
@@ -70,6 +73,7 @@ func (s *TcpSession) Start() {
 
 	//callback to user
 	if s.netOp.OnConnected != nil {
+		logger.WithField("sessionId", s.id).Debugln("session onConnected, callback to user")
 		s.netOp.OnConnected(s)
 	}
 
@@ -77,10 +81,12 @@ func (s *TcpSession) Start() {
 	s.wg.Wait()
 
 	//close socket
+	logger.WithField("sessionId", s.id).Debugln("session closeDone, close raw socket")
 	s.raw.Close()
 
 	//tell sessionManager we are done
 	if s.onCloseDone != nil {
+		logger.WithField("sessionId", s.id).Debugln("session closeDone, notify server")
 		s.onCloseDone(s)
 	}
 
@@ -101,30 +107,42 @@ func (s *TcpSession) Stop() {
 	s.closed = true
 	s.guard.Unlock()
 
+	logger.WithField("sessionId", s.id).Debugln("session stopping...")
+
 	if s.netOp.OnClose != nil {
+		logger.WithField("sessionId", s.id).Debugln("session onClose, callback to user")
 		s.netOp.OnClose(s)
 	}
 
 	//close readLoop
+	logger.WithField("sessionId", s.id).Debugln("close readLoop...")
 	close(s.closeCh)
 
 	//send signal to writeLoop, shutdown wr until nothing more to send
+	logger.WithField("sessionId", s.id).Debugln("close WriteLoop...")
 	s.sendCh <- nil
 }
 
 func (s *TcpSession) readLoop() {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Printf("catch unexpected error:%s", r)
+			logger.WithFields(logrus.Fields{
+				"sessionId": s.id,
+				"error":     r}).Errorln("session readLoop error")
+
 			s.Stop()
 		}
 
+		logger.WithField("sessionId", s.id).Debugln("readLoop stopped")
 		s.wg.Done()
 	}()
+
+	logger.WithField("sessionId", s.id).Debugln("session start readLoop")
 
 	for {
 		select {
 		case <-s.closeCh:
+			return
 		default:
 		}
 
@@ -133,13 +151,18 @@ func (s *TcpSession) readLoop() {
 
 			if err == io.EOF {
 				//client close socket
+				logger.WithField("sessionId", s.id).Debugln("read eof from socket")
 				s.Stop()
 				return
 			}
 
-			//TODO logs
 			panic(err)
 		}
+
+		logger.WithFields(logrus.Fields{
+			"sessionId": s.id,
+			"messageId": msg.GetId(),
+		}).Debugln("receive message from socket")
 
 		s.netOp.PostEvent(&iface.MessageEvent{EventSes: s, Msg: msg})
 	}
@@ -148,7 +171,10 @@ func (s *TcpSession) readLoop() {
 func (s *TcpSession) writeLoop() {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Printf("catch unexpected error:%s", r)
+			logger.WithFields(logrus.Fields{
+				"sessionId": s.id,
+				"error":     r,
+			}).Errorln("session writeLoop error")
 
 			//通知readLoop 关闭
 			s.Stop()
@@ -158,7 +184,11 @@ func (s *TcpSession) writeLoop() {
 		//TODO shutdown write之后,给readLoop一个超时,指定时间内未触发io.EOF则强制关闭
 		s.raw.CloseWrite()
 		s.wg.Done()
+
+		logger.WithField("sessionId", s.id).Debugln("writeLoop stopped")
 	}()
+
+	logger.WithField("sessionId", s.id).Debugln("session start writeLoop")
 
 	var err error
 	for msg := range s.sendCh {
@@ -168,9 +198,13 @@ func (s *TcpSession) writeLoop() {
 
 		err = s.netOp.WriteMessage(s.raw, msg)
 		if err != nil {
-			//TODO logs
 			panic(err)
 		}
+
+		logger.WithFields(logrus.Fields{
+			"sessionId": s.id,
+			"messageId": msg.GetId(),
+		}).Debugln("send message to socket")
 	}
 }
 

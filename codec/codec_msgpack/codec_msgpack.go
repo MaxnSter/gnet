@@ -15,14 +15,13 @@ var (
 )
 
 type CoderMsgpack struct {
-
 }
 
-func (c CoderMsgpack) TypeName() string  {
+func (c CoderMsgpack) TypeName() string {
 	return CoderMsgPackTypeName
 }
 
-func (c CoderMsgpack) Encode(msg interface{}) (data[]byte, err error) {
+func (c CoderMsgpack) Encode(msg interface{}) (data []byte, err error) {
 	return msgpack.Marshal(msg)
 }
 
@@ -30,6 +29,6 @@ func (c CoderMsgpack) Decode(data []byte, pMsg interface{}) error {
 	return msgpack.Unmarshal(data, pMsg)
 }
 
-func init()  {
+func init() {
 	codec.RegisterCoder(CoderMsgPackTypeName, &CoderMsgpack{})
 }

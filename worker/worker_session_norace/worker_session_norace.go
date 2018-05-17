@@ -1,11 +1,11 @@
 package worker_session_norace
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
 	"github.com/MaxnSter/gnet/iface"
+	"github.com/MaxnSter/gnet/logger"
 	"github.com/MaxnSter/gnet/worker"
 )
 
@@ -56,6 +56,7 @@ func NewPoolNoRace() iface.WorkerPool {
 }
 
 func (p *poolNoRace) Start() {
+	logger.WithField("name", p.TypeName()).Infoln("worker pool start")
 	go func() {
 		var scratch []*goChan
 		for {
@@ -103,6 +104,7 @@ func (p *poolNoRace) Stop() (done <-chan struct{}) {
 	default:
 	}
 
+	logger.WithField("name", p.TypeName()).Infoln("pool stopping...")
 	close(p.stopCh)
 
 	p.lock.Lock()
@@ -119,9 +121,11 @@ func (p *poolNoRace) Stop() (done <-chan struct{}) {
 			select {
 			case <-time.After(1 * time.Second):
 				p.lock.Lock()
+				logger.WithField("name", p.TypeName()).Infoln("waiting for workers exit...")
 				if p.goroutinesCount == 0 {
 					p.lock.Unlock()
 					if p.closeDone != nil {
+						logger.WithField("name", p.TypeName()).Infoln("pool stopped")
 						close(p.closeDone)
 					}
 					return
@@ -138,7 +142,7 @@ func (p *poolNoRace) Put(session iface.NetSession, cb func()) {
 
 	select {
 	case <-p.stopCh:
-		fmt.Printf("already stop!\n")
+		logger.WithField("name", p.TypeName()).Errorln("pool already stopping, can't put task")
 		return
 	default:
 	}
@@ -146,7 +150,7 @@ func (p *poolNoRace) Put(session iface.NetSession, cb func()) {
 	if ch := p.getCh(); ch != nil {
 		ch.ch <- cb
 	} else {
-		//TODO logs
+		logger.WithField("name", p.TypeName()).Warning("pool size limit")
 		cb()
 	}
 }

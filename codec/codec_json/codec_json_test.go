@@ -10,7 +10,7 @@ import (
 func TestEncodeAndDecode(t *testing.T) {
 
 	type Info struct {
-		Id uint32
+		Id  uint32
 		Msg string
 	}
 
@@ -28,4 +28,3 @@ func TestEncodeAndDecode(t *testing.T) {
 	assert.Equal(t, uint32(1), newInfo.Id)
 
 }
-

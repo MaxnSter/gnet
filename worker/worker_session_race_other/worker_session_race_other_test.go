@@ -146,10 +146,9 @@ func TestPoolRaceOther_Stop(t *testing.T) {
 
 	q := NewPoolRaceOther()
 	wg := &sync.WaitGroup{}
-	wgDoneCh := make(chan struct{})
 	q.Start()
 
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 5; i++ {
 		wg.Add(1)
 		q.Put(nil, func() {
 			for i := 0; i < math.MaxUint8; i++ {
@@ -158,21 +157,10 @@ func TestPoolRaceOther_Stop(t *testing.T) {
 		})
 	}
 
-	q.Stop()
-	wg.Add(1)
-	q.Put(nil, func() {
-		wg.Done()
-	})
-
-	go func() {
-		wg.Wait()
-		wgDoneCh <- struct{}{}
-	}()
-
 	select {
 	case <-time.After(10 * time.Second):
-	case <-wgDoneCh:
 		assert.Fail(t, "queue not stopped")
+	case <-q.Stop():
 	}
 }
 
@@ -183,10 +171,10 @@ func TestPoolRaceOther_Stop2(t *testing.T) {
 	wgDoneCh := make(chan struct{})
 	q.Start()
 
-	for i := 0; i < 500000; i++ {
+	for i := 0; i < 5; i++ {
 		wg.Add(1)
 		q.Put(nil, func() {
-			for i := 0; i < math.MaxInt16; i++ {
+			for i := 0; i < math.MaxInt8; i++ {
 			}
 			wg.Done()
 		})
@@ -200,7 +188,7 @@ func TestPoolRaceOther_Stop2(t *testing.T) {
 	}()
 
 	select {
-	case <-time.After(60 * time.Second):
+	case <-time.After(6 * time.Second):
 		assert.Fail(t, "queue stopped before all task finished!")
 	case <-wgDoneCh:
 	}

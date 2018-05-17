@@ -82,10 +82,10 @@ func TestPoolNoRace_Stop2(t *testing.T) {
 	wgDoneCh := make(chan struct{})
 	q.Start()
 
-	for i := 0; i < 500000; i++ {
+	for i := 0; i < 5; i++ {
 		wg.Add(1)
 		q.Put(nil, func() {
-			for i := 0; i < math.MaxInt16; i++ {
+			for i := 0; i < math.MaxInt8; i++ {
 			}
 			wg.Done()
 		})
@@ -99,7 +99,7 @@ func TestPoolNoRace_Stop2(t *testing.T) {
 	}()
 
 	select {
-	case <-time.After(60 * time.Second):
+	case <-time.After(6 * time.Second):
 		assert.Fail(t, "queue stopped before all task finished!")
 	case <-wgDoneCh:
 	}

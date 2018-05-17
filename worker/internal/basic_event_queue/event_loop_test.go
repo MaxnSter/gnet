@@ -47,33 +47,19 @@ func TestEventQueue_Put2(t *testing.T) {
 func TestEventQueue_Stop(t *testing.T) {
 
 	q := NewEventQueue(100, true)
-	wg := &sync.WaitGroup{}
-	wgDoneCh := make(chan struct{})
 	q.Start()
 
-	for i := 0; i < 100; i++ {
-		wg.Add(1)
-		q.Put(func() {
+	for i := 0; i < 5000; i++ {
+		q.MustPut(func() {
 			for i := 0; i < math.MaxUint8; i++ {
 			}
-			wg.Done()
 		})
 	}
 
-	q.Stop()
-	wg.Add(1)
-	q.Put(func() {
-		wg.Done()
-	})
-
-	go func() {
-		wg.Wait()
-		wgDoneCh <- struct{}{}
-	}()
-
 	select {
 	case <-time.After(10 * time.Second):
-	case <-wgDoneCh:
 		assert.Fail(t, "queue not stopped")
+	case <-q.Stop():
+
 	}
 }

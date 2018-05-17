@@ -1,15 +1,15 @@
-sudo: false
 language: go
 
 go:
-  - 1.7.x
-  - 1.8.x
-  - 1.9.x
+  - 1.1
+  - 1.2
+  - 1.3
   - tip
 
-matrix:
-  allow_failures:
-    - go: tip
-
 install:
+  - go get github.com/vmihailenco/bufio
   - go get gopkg.in/check.v1
+  - go get github.com/ugorji/go-msgpack
+  - go get github.com/ugorji/go/codec
+  - mkdir -p $HOME/gopath/src/gopkg.in/vmihailenco
+  - ln -s `pwd` $HOME/gopath/src/gopkg.in/vmihailenco/msgpack.v1

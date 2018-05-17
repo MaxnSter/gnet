@@ -2,6 +2,7 @@ package worker_session_race_self
 
 import (
 	"github.com/MaxnSter/gnet/iface"
+	"github.com/MaxnSter/gnet/logger"
 	"github.com/MaxnSter/gnet/worker"
 	"github.com/MaxnSter/gnet/worker/internal/basic_event_queue"
 )
@@ -37,6 +38,7 @@ func NewPoolRaceSelf() iface.WorkerPool {
 }
 
 func (p *poolRaceSelf) Start() {
+	logger.WithField("name", p.TypeName()).Infoln("worker pool start")
 	for i := range p.workers {
 		p.workers[i] = basic_event_queue.NewEventQueue(queueSize, true)
 	}
@@ -47,7 +49,9 @@ func (p *poolRaceSelf) Start() {
 }
 
 func (p *poolRaceSelf) Stop() (done <-chan struct{}) {
-	chans := make([]<-chan struct{}, workerNum)
+	chans := make([]<-chan struct{}, 0, workerNum)
+
+	logger.WithField("name", p.TypeName()).Infoln("pool stopping...")
 
 	for _, w := range p.workers {
 		chans = append(chans, w.Stop())
@@ -59,6 +63,7 @@ func (p *poolRaceSelf) Stop() (done <-chan struct{}) {
 		}
 
 		if p.closeDone != nil {
+			logger.WithField("name", p.TypeName()).Infoln("pool stopped")
 			close(p.closeDone)
 		}
 	}()
@@ -70,7 +75,7 @@ func (p *poolRaceSelf) Put(session iface.NetSession, cb func()) {
 	w := p.workers[session.ID()%workerNum]
 
 	if err := w.Put(cb); err != nil {
-		//TODO logs
+		logger.WithField("name", p.TypeName()).Warning("pool size limit")
 		w.MustPut(cb)
 
 	}

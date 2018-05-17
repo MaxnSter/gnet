@@ -2,6 +2,7 @@ package worker_session_race_other
 
 import (
 	"github.com/MaxnSter/gnet/iface"
+	"github.com/MaxnSter/gnet/logger"
 	"github.com/MaxnSter/gnet/worker"
 	"github.com/MaxnSter/gnet/worker/internal/basic_event_queue"
 )
@@ -33,16 +34,18 @@ func NewPoolRaceOther() iface.WorkerPool {
 }
 
 func (p *poolRaceOther) Start() {
+	logger.WithField("name", p.TypeName()).Infoln("worker pool start")
 	p.queue.Start()
 }
 
 func (p *poolRaceOther) Stop() (done <-chan struct{}) {
+	logger.WithField("name", p.TypeName()).Infoln("pool stopping...")
 	return p.queue.Stop()
 }
 
 func (p *poolRaceOther) Put(session iface.NetSession, cb func()) {
 	if err := p.queue.Put(cb); err != nil {
-		//TODO logs
+		logger.WithField("name", p.TypeName()).Warning("pool size limit")
 		p.queue.MustPut(cb)
 	}
 }

@@ -2,11 +2,10 @@ package msgpack
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"reflect"
 	"time"
-
-	"github.com/vmihailenco/msgpack/codes"
 )
 
 type writer interface {
@@ -15,81 +14,43 @@ type writer interface {
 	WriteString(string) (int, error)
 }
 
-type byteWriter struct {
+type writeByte struct {
 	io.Writer
-
-	buf       []byte
-	bootstrap [64]byte
 }
 
-func newByteWriter(w io.Writer) *byteWriter {
-	bw := &byteWriter{
-		Writer: w,
+func (w *writeByte) WriteByte(b byte) error {
+	n, err := w.Write([]byte{b})
+	if err != nil {
+		return err
 	}
-	bw.buf = bw.bootstrap[:]
-	return bw
+	if n != 1 {
+		return io.ErrShortWrite
+	}
+	return nil
 }
 
-func (w *byteWriter) WriteByte(c byte) error {
-	w.buf = w.buf[:1]
-	w.buf[0] = c
-	_, err := w.Write(w.buf)
-	return err
+func (w *writeByte) WriteString(s string) (int, error) {
+	return w.Write([]byte(s))
 }
 
-func (w *byteWriter) WriteString(s string) (int, error) {
-	w.buf = append(w.buf[:0], s...)
-	return w.Write(w.buf)
-}
-
-// Marshal returns the MessagePack encoding of v.
 func Marshal(v ...interface{}) ([]byte, error) {
-	var buf bytes.Buffer
-	err := NewEncoder(&buf).Encode(v...)
+	buf := &bytes.Buffer{}
+	err := NewEncoder(buf).Encode(v...)
 	return buf.Bytes(), err
 }
 
 type Encoder struct {
-	w   writer
-	buf []byte
-
-	sortMapKeys   bool
-	structAsArray bool
-	useJSONTag    bool
+	W writer
 }
 
-// NewEncoder returns a new encoder that writes to w.
 func NewEncoder(w io.Writer) *Encoder {
-	bw, ok := w.(writer)
+	ww, ok := w.(writer)
 	if !ok {
-		bw = newByteWriter(w)
+		ww = &writeByte{Writer: w}
 	}
 	return &Encoder{
-		w:   bw,
-		buf: make([]byte, 9),
+		W: ww,
 	}
-}
-
-// SortMapKeys causes the Encoder to encode map keys in increasing order.
-// Supported map types are:
-//   - map[string]string
-//   - map[string]interface{}
-func (e *Encoder) SortMapKeys(v bool) *Encoder {
-	e.sortMapKeys = v
-	return e
-}
-
-// StructAsArray causes the Encoder to encode Go structs as MessagePack arrays.
-func (e *Encoder) StructAsArray(v bool) *Encoder {
-	e.structAsArray = v
-	return e
-}
-
-// UseJSONTag causes the Encoder to use json struct tag as fallback option
-// if there is no msgpack tag.
-func (e *Encoder) UseJSONTag(v bool) *Encoder {
-	e.useJSONTag = v
-	return e
 }
 
 func (e *Encoder) Encode(v ...interface{}) error {
@@ -101,62 +62,159 @@ func (e *Encoder) Encode(v ...interface{}) error {
 	return nil
 }
 
-func (e *Encoder) encode(v interface{}) error {
-	switch v := v.(type) {
-	case nil:
+func (e *Encoder) encode(iv interface{}) error {
+	if iv == nil {
 		return e.EncodeNil()
+	}
+
+	switch v := iv.(type) {
 	case string:
 		return e.EncodeString(v)
 	case []byte:
 		return e.EncodeBytes(v)
 	case int:
-		return e.EncodeInt(int64(v))
+		return e.EncodeInt64(int64(v))
 	case int64:
-		return e.EncodeInt(v)
+		return e.EncodeInt64(v)
 	case uint:
-		return e.EncodeUint(uint64(v))
+		return e.EncodeUint64(uint64(v))
 	case uint64:
-		return e.EncodeUint(v)
+		return e.EncodeUint64(v)
 	case bool:
 		return e.EncodeBool(v)
 	case float32:
 		return e.EncodeFloat32(v)
 	case float64:
 		return e.EncodeFloat64(v)
+	case []string:
+		return e.encodeStringSlice(v)
+	case map[string]string:
+		return e.encodeMapStringString(v)
 	case time.Duration:
-		return e.EncodeInt(int64(v))
+		return e.EncodeInt64(int64(v))
 	case time.Time:
 		return e.EncodeTime(v)
+	case encoder:
+		return v.EncodeMsgpack(e.W)
 	}
-	return e.EncodeValue(reflect.ValueOf(v))
+	return e.EncodeValue(reflect.ValueOf(iv))
 }
 
 func (e *Encoder) EncodeValue(v reflect.Value) error {
-	encode := getEncoder(v.Type())
-	return encode(e, v)
+	switch v.Kind() {
+	case reflect.String:
+		return e.EncodeString(v.String())
+	case reflect.Bool:
+		return e.EncodeBool(v.Bool())
+	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
+		return e.EncodeUint64(v.Uint())
+	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
+		return e.EncodeInt64(v.Int())
+	case reflect.Float32:
+		return e.EncodeFloat32(float32(v.Float()))
+	case reflect.Float64:
+		return e.EncodeFloat64(v.Float())
+	case reflect.Array:
+		return e.encodeSlice(v)
+	case reflect.Slice:
+		if v.IsNil() {
+			return e.EncodeNil()
+		}
+		return e.encodeSlice(v)
+	case reflect.Map:
+		return e.encodeMap(v)
+	case reflect.Interface, reflect.Ptr:
+		if v.IsNil() {
+			return e.EncodeNil()
+		}
+		if enc, ok := typEncMap[v.Type()]; ok {
+			return enc(e, v)
+		}
+		if enc, ok := v.Interface().(encoder); ok {
+			return enc.EncodeMsgpack(e.W)
+		}
+		return e.EncodeValue(v.Elem())
+	case reflect.Struct:
+		typ := v.Type()
+		if enc, ok := typEncMap[typ]; ok {
+			return enc(e, v)
+		}
+		if enc, ok := v.Interface().(encoder); ok {
+			return enc.EncodeMsgpack(e.W)
+		}
+		return e.encodeStruct(v)
+	default:
+		return fmt.Errorf("msgpack: unsupported type %v", v.Type().String())
+	}
+	panic("not reached")
 }
 
 func (e *Encoder) EncodeNil() error {
-	return e.writeCode(codes.Nil)
+	return e.W.WriteByte(nilCode)
 }
 
 func (e *Encoder) EncodeBool(value bool) error {
 	if value {
-		return e.writeCode(codes.True)
+		return e.W.WriteByte(trueCode)
 	}
-	return e.writeCode(codes.False)
+	return e.W.WriteByte(falseCode)
 }
 
-func (e *Encoder) writeCode(c codes.Code) error {
-	return e.w.WriteByte(byte(c))
+func (e *Encoder) encodeStruct(v reflect.Value) error {
+	fields := structs.Fields(v.Type())
+	switch l := len(fields); {
+	case l < 16:
+		if err := e.W.WriteByte(fixMapLowCode | byte(l)); err != nil {
+			return err
+		}
+	case l < 65536:
+		if err := e.write([]byte{
+			map16Code,
+			byte(l >> 8),
+			byte(l),
+		}); err != nil {
+			return err
+		}
+	default:
+		if err := e.write([]byte{
+			map32Code,
+			byte(l >> 24),
+			byte(l >> 16),
+			byte(l >> 8),
+			byte(l),
+		}); err != nil {
+			return err
+		}
+	}
+	for _, f := range fields {
+		if err := e.EncodeString(f.Name()); err != nil {
+			return err
+		}
+		if err := f.EncodeValue(e, v); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func (e *Encoder) write(b []byte) error {
-	_, err := e.w.Write(b)
-	return err
+func (e *Encoder) write(data []byte) error {
+	n, err := e.W.Write(data)
+	if err != nil {
+		return err
+	}
+	if n < len(data) {
+		return io.ErrShortWrite
+	}
+	return nil
 }
 
 func (e *Encoder) writeString(s string) error {
-	_, err := e.w.WriteString(s)
-	return err
+	n, err := e.W.WriteString(s)
+	if err != nil {
+		return err
+	}
+	if n < len(s) {
+		return io.ErrShortWrite
+	}
+	return nil
 }

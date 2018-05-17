@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/MaxnSter/gnet/iface"
+	"github.com/MaxnSter/gnet/logger"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -130,35 +131,21 @@ func BenchmarkNewPoolRaceSelf(b *testing.B) {
 func TestPoolRaceSelf_Stop(t *testing.T) {
 
 	q := NewPoolRaceSelf()
-	wg := &sync.WaitGroup{}
-	wgDoneCh := make(chan struct{})
 	q.Start()
 
-	for i := 0; i < 10000; i++ {
-		wg.Add(1)
+	for i := 0; i < 10; i++ {
 		idx := i
 		q.Put(&tSession{int64(idx), nil}, func() {
 			for i := 0; i < math.MaxUint8; i++ {
 			}
-			wg.Done()
+			logger.WithField("i", idx).Infoln("task done")
 		})
 	}
 
-	q.Stop()
-	wg.Add(1)
-	q.Put(&tSession{1, nil}, func() {
-		wg.Done()
-	})
-
-	go func() {
-		wg.Wait()
-		wgDoneCh <- struct{}{}
-	}()
-
 	select {
-	case <-time.After(10 * time.Second):
-	case <-wgDoneCh:
+	case <-time.After(5 * time.Second):
 		assert.Fail(t, "queue not stopped")
+	case <-q.Stop():
 	}
 }
 

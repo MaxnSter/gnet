@@ -1,17 +1,18 @@
 package msgpack
 
-type Marshaler interface {
-	MarshalMsgpack() ([]byte, error)
+import (
+	"io"
+)
+
+type encoder interface {
+	EncodeMsgpack(io.Writer) error
 }
 
-type Unmarshaler interface {
-	UnmarshalMsgpack([]byte) error
+type decoder interface {
+	DecodeMsgpack(io.Reader) error
 }
 
-type CustomEncoder interface {
-	EncodeMsgpack(*Encoder) error
-}
-
-type CustomDecoder interface {
-	DecodeMsgpack(*Decoder) error
+type Coder interface {
+	encoder
+	decoder
 }

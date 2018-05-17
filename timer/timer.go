@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/MaxnSter/gnet/iface"
+	"github.com/MaxnSter/gnet/logger"
 )
 
 type timerNode struct {
@@ -55,7 +56,6 @@ func (heap timerHeap) getTimerIdx(timerId int64) int {
 	return -1
 }
 
-
 const (
 	_UNTOUCHED = time.Duration(math.MaxInt64)
 )
@@ -86,6 +86,7 @@ func NewTimerManager(workers iface.WorkerPool) *timerManager {
 }
 
 func (tm *timerManager) Start() {
+	logger.Infoln("timer start")
 
 	heap.Init(&tm.timers)
 	go tm.run()
@@ -94,6 +95,7 @@ func (tm *timerManager) Start() {
 func (tm *timerManager) Stop() (done <-chan struct{}) {
 	tm.closeCh <- struct{}{}
 
+	logger.Infoln("timer stopping...")
 	return tm.closeDoneCh
 }
 
@@ -139,8 +141,12 @@ func (tm *timerManager) run() {
 		expiredTNode []*timerNode
 	)
 
-	defer close(tm.closeDoneCh)
-	defer loopTimer.Stop()
+	defer func() {
+		loopTimer.Stop()
+		close(tm.closeDoneCh)
+
+		logger.Infoln("timer stopped")
+	}()
 
 	for {
 		if len(tm.timers) > 0 {
@@ -204,8 +210,6 @@ func (tm *timerManager) update(tNodes []*timerNode) {
 			continue
 		}
 
-		//TODO which?
-		//v.expire = v.expire.Add(v.interval)
 		v.expire = time.Now().Add(v.interval)
 		heap.Push(&tm.timers, tNodes[i])
 	}

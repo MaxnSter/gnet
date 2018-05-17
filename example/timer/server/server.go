@@ -24,7 +24,7 @@ func main() {
 		s.RunEvery(time.Now(), time.Second*5, onTimer)
 	}
 
-	server := gnet.NewServer("127.0.0.1:9000", "server", onEvent,
+	server := gnet.NewServer("127.0.0.1:2007", "server", onEvent,
 		gnet.WithConnectedCB(onConnect), gnet.WithCoder("msgpack"))
 	server.StartAndRun()
 }

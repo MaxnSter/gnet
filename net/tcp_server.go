@@ -3,11 +3,16 @@ package net
 import (
 	"errors"
 	"net"
+	"os"
 	"os/signal"
 	"sync"
 	"sync/atomic"
 	"syscall"
 	"time"
+
+	"github.com/MaxnSter/gnet/iface"
+	"github.com/MaxnSter/gnet/logger"
+	"github.com/sirupsen/logrus"
 )
 
 type TcpServer struct {
@@ -24,7 +29,7 @@ type TcpServer struct {
 	started bool
 	stopped bool
 
-	stopCh chan struct{}
+	stopCh chan error
 }
 
 func NewTcpServer(addr, name string, options *NetOptions) *TcpServer {
@@ -35,7 +40,7 @@ func NewTcpServer(addr, name string, options *NetOptions) *TcpServer {
 		sessions: sync.Map{},
 		guard:    &sync.Mutex{},
 		wg:       &sync.WaitGroup{},
-		stopCh:   make(chan struct{}),
+		stopCh:   make(chan error),
 	}
 }
 
@@ -46,27 +51,19 @@ func (server *TcpServer) Start() error {
 		server.guard.Unlock()
 		return errors.New("server already started")
 	}
-	server.guard.Unlock()
-
-	l, err := net.Listen("tcp", server.addr)
-	if err != nil {
-		return err
-	}
-
-	//start accept
-	server.listener = l.(*net.TCPListener)
-	server.wg.Add(1)
-	go server.accept()
-
-	//start worker pool
-	server.options.Worker.Start()
-
-	//start timer
-	server.options.Timer.Start()
-
-	server.guard.Lock()
 	server.started = true
 	server.guard.Unlock()
+
+	logger.WithField("addr", server.addr).Infoln("server start listening")
+	l, err := net.Listen("tcp", server.addr)
+	if err != nil {
+		logger.WithFields(logrus.Fields{"addr": server.addr, "error": err}).Errorln("server listen error")
+
+		return err
+	}
+	server.listener = l.(*net.TCPListener)
+
+
 	return nil
 }
 
@@ -74,12 +71,14 @@ func (server *TcpServer) accept() {
 	defer func() {
 
 		if r := recover(); r != nil {
-			//TODO logs
+			logger.WithField("error", r).Errorln("acceptor recover from error")
 		}
 
-		server.listener.Close()
 		server.wg.Done()
+		logger.Infoln("acceptor stopped")
 	}()
+
+	logger.Infoln("server start running finished, waiting for connect...")
 
 	delayTime := 5 * time.Microsecond
 	maxDelayTime := time.Second
@@ -101,12 +100,13 @@ func (server *TcpServer) accept() {
 					delayTime *= 2
 				}
 
+				logger.WithField("error", err).Warningln("acceptor got temporary error")
 				time.Sleep(delayTime)
 				continue
 
 			} else {
-				//TODO
 				panic(err)
+				//return
 			}
 		}
 
@@ -114,12 +114,13 @@ func (server *TcpServer) accept() {
 
 		server.wg.Add(1)
 		go server.onNewConnection(conn)
+		logger.WithField("addr", conn.RemoteAddr().String()).Debugln("new connection accepted")
 	}
 }
 
 func (server *TcpServer) onNewConnection(conn *net.TCPConn) {
 	sid := atomic.AddInt64(&server.idGen, 1)
-	session := NewTcpSession(sid, &server.options, conn, func(s *TcpSession) {
+	session := NewTcpSession(sid, server.options, conn, func(s *TcpSession) {
 		//after session close done
 		server.sessions.Delete(s.id)
 		server.wg.Done()
@@ -139,44 +140,70 @@ func (server *TcpServer) Run() {
 	}
 	server.guard.Unlock()
 
-	//TCP_NODELAY default true
-	//SO_REUSEADDR default setted
-
-	//ignore SIGPIPE
+	//TCP_NODELAY  默认true
+	//SO_REUSEADDR 默认设置
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGKILL, syscall.SIGTERM)
 	signal.Ignore(syscall.SIGPIPE)
 
-	//TODO catch signal...
+	logger.Infoln("server start running...")
 
-	//wait for listener and all session close
+	//开启worker pool
+	server.options.Worker.Start()
+
+	//开启timer manager
+	server.options.Timer.Start()
+
+	//开始接收连接
+	server.wg.Add(1)
+	go server.accept()
+
+	//监听信号
+	go func() {
+		s := <-sigCh
+		logger.WithField("signal", s).Infoln("catch signal")
+
+		server.Stop()
+	}()
+
+	//等待服务器关闭,等待所有session退出
 	server.wg.Wait()
+	logger.Infoln("all session closed")
 
-	//close workerPool and wait for close Done
 	<-server.options.Worker.Stop()
-
-	//close timer and wait for close Done
 	<-server.options.Timer.Stop()
 
-	//release all resource
-	server.guard.Lock()
-	server.started = false
-	server.stopped = false
-	server.stopCh = make(chan struct{})
-	server.guard.Unlock()
-
 	if server.options.OnServerClosed != nil {
+		logger.Infoln("server closed, callback to user")
+
 		server.options.OnServerClosed()
 	}
+
+	logger.Infoln("server closed, exit...")
 }
 
 func (server *TcpServer) Stop() {
 	server.guard.Lock()
 	if server.stopped {
 		server.guard.Unlock()
-		panic("server already stop!")
+		return
 	}
 
 	server.stopped = true
 	server.guard.Unlock()
+
+	logger.Infoln("server start closing...")
+
+	//立即停止接收新连接
+	logger.Infoln("closing listener...")
+	server.listener.Close()
+
+	//关闭所有在线连接
+	logger.Infoln("closing all sessions...")
+	server.AccessSession(func(Id, session interface{}) bool {
+		session.(iface.NetSession).Stop()
+		return true
+	})
 
 	close(server.stopCh)
 }
@@ -187,4 +214,8 @@ func (server *TcpServer) StartAndRun() {
 	}
 
 	server.Run()
+}
+
+func (server *TcpServer) AccessSession(accessFunc func(Id, session interface{}) bool) {
+	server.sessions.Range(accessFunc)
 }
