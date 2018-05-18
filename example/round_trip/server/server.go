@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	server := gnet.NewServer("127.0.0.1:2007", "", func(ev iface.Event) {
+	server := gnet.NewServer("0.0.0.0:2007", "", func(ev iface.Event) {
 		switch msg := ev.Message().(type) {
 		case *round_trip.RoundTripProto:
 			msg.T2 = time.Now().UnixNano()

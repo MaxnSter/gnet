@@ -9,6 +9,7 @@ import (
 	_ "github.com/MaxnSter/gnet/pack/pack_type_length_value"
 	"github.com/MaxnSter/gnet/timer"
 	"github.com/MaxnSter/gnet/worker"
+	_ "github.com/MaxnSter/gnet/worker/worker_session_norace"
 	_ "github.com/MaxnSter/gnet/worker/worker_session_race_other"
 	_ "github.com/MaxnSter/gnet/worker/worker_session_race_self"
 )
@@ -16,7 +17,7 @@ import (
 const (
 	defaultCoder            = "json"
 	defaultPacker           = "tlv"
-	defaultServerWorkerPool = "poolRaceSelf"
+	defaultServerWorkerPool = "poolNoRace"
 	defaultClientWorkerPool = "poolRaceOther"
 )
 

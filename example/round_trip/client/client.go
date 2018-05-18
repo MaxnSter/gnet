@@ -20,7 +20,7 @@ func getRoundTrip(tClient int64, tServer int64) {
 }
 
 func main() {
-	client := gnet.NewClient("127.0.0.1:2007",
+	client := gnet.NewClient("aliyun:2007",
 		func(ev iface.Event) {
 			switch msg := ev.Message().(type) {
 			case *round_trip.RoundTripProto:

@@ -52,6 +52,7 @@ func NewPoolNoRace() iface.WorkerPool {
 		lock:   &sync.Mutex{},
 		ready:  make([]*goChan, 0),
 		stopCh: make(chan struct{}),
+		closeDone:make(chan struct{}),
 	}
 }
 
@@ -119,7 +120,7 @@ func (p *poolNoRace) Stop() (done <-chan struct{}) {
 	go func() {
 		for {
 			select {
-			case <-time.After(1 * time.Second):
+			case <-time.After(100 * time.Millisecond):
 				p.lock.Lock()
 				logger.WithField("name", p.TypeName()).Infoln("waiting for workers exit...")
 				if p.goroutinesCount == 0 {

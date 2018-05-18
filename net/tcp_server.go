@@ -6,12 +6,12 @@ import (
 	"os"
 	"os/signal"
 	"sync"
-	"sync/atomic"
 	"syscall"
 	"time"
 
 	"github.com/MaxnSter/gnet/iface"
 	"github.com/MaxnSter/gnet/logger"
+	"github.com/MaxnSter/gnet/util"
 	"github.com/sirupsen/logrus"
 )
 
@@ -22,7 +22,6 @@ type TcpServer struct {
 	listener *net.TCPListener
 
 	sessions sync.Map
-	idGen    int64
 
 	guard   *sync.Mutex
 	wg      *sync.WaitGroup
@@ -63,7 +62,6 @@ func (server *TcpServer) Start() error {
 	}
 	server.listener = l.(*net.TCPListener)
 
-
 	return nil
 }
 
@@ -79,6 +77,7 @@ func (server *TcpServer) accept() {
 	}()
 
 	logger.Infoln("server start running finished, waiting for connect...")
+
 
 	delayTime := 5 * time.Microsecond
 	maxDelayTime := time.Second
@@ -119,7 +118,7 @@ func (server *TcpServer) accept() {
 }
 
 func (server *TcpServer) onNewConnection(conn *net.TCPConn) {
-	sid := atomic.AddInt64(&server.idGen, 1)
+	sid := util.GetUUID()
 	session := NewTcpSession(sid, server.options, conn, func(s *TcpSession) {
 		//after session close done
 		server.sessions.Delete(s.id)
@@ -198,14 +197,20 @@ func (server *TcpServer) Stop() {
 	logger.Infoln("closing listener...")
 	server.listener.Close()
 
+	server.shutAllSessions()
+
+	close(server.stopCh)
+}
+
+func (server *TcpServer) shutAllSessions() {
+
 	//关闭所有在线连接
 	logger.Infoln("closing all sessions...")
 	server.AccessSession(func(Id, session interface{}) bool {
+		time.Sleep(time.Millisecond)
 		session.(iface.NetSession).Stop()
 		return true
 	})
-
-	close(server.stopCh)
 }
 
 func (server *TcpServer) StartAndRun() {

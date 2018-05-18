@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math/rand"
 	"time"
 
 	"github.com/MaxnSter/gnet"
@@ -12,6 +13,10 @@ import (
 	_ "github.com/MaxnSter/gnet/codec/codec_msgpack"
 )
 
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
 func main() {
 	onEvent := func(ev iface.Event) {}
 	onTimer := func(t time.Time, s iface.NetSession) {
@@ -21,10 +26,12 @@ func main() {
 		})
 	}
 	onConnect := func(s *net.TcpSession) {
-		s.RunEvery(time.Now(), time.Second*5, onTimer)
+		r := rand.Intn(5) + 1
+		s.RunEvery(time.Now(), time.Duration(r)*time.Second, onTimer)
 	}
 
-	server := gnet.NewServer("127.0.0.1:2007", "server", onEvent,
+	server := gnet.NewServer("0.0.0.0:2007", "server", onEvent,
 		gnet.WithConnectedCB(onConnect), gnet.WithCoder("msgpack"))
+
 	server.StartAndRun()
 }

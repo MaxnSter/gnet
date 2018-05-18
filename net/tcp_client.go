@@ -14,7 +14,7 @@ import (
 
 const (
 	baseRetryDuraion = time.Millisecond * 500
-	maxRetryDuation = time.Second * 5
+	maxRetryDuation  = time.Second * 5
 )
 
 type TcpClient struct {
