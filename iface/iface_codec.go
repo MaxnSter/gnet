@@ -1,8 +1,9 @@
 package iface
 
+//the coder
 type Coder interface {
 
-	//encode Msg to []byte, err != nil if not succeed
+	//encode v to []byte, err != nil if not succeed
 	Encode(v interface{}) (data []byte, err error)
 
 	// decode []byte to Msg, err != nil if not succeed

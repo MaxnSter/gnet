@@ -12,11 +12,12 @@ type safetimer struct {
 	scr bool
 }
 
-//saw channel read, must be called after receiving value from safetimer chan
+//saw channel read,在drain timer对应的ch后一定要调用
 func (t *safetimer) SCR() {
 	t.scr = true
 }
 
+//重置定时器
 func (t *safetimer) SafeReset(d time.Duration) bool {
 	ret := t.Stop()
 

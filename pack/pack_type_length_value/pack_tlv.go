@@ -26,15 +26,17 @@ const (
 
 // ------------|---------------|-------------
 // |  Length   |   Type(msgId) |   value	|
-// |    4      |       4       |   bodyLen	|
+// |    4      |       4       |   msg  	|
 // ------------------------------------------
+// |           |--------------body----------|
 
 type tlvPacker struct {
 }
 
+//从指定reader中读数据,并根据指定的coder反序列化出一个message
 func (p *tlvPacker) Unpack(reader io.Reader, c iface.Coder) (msg iface.Message, err error) {
 
-	//read length of the Length
+	//读取长度段
 	lengthBuf := make([]byte, LengthBytes)
 	_, err = io.ReadFull(reader, lengthBuf)
 	if err != nil {
@@ -46,24 +48,24 @@ func (p *tlvPacker) Unpack(reader io.Reader, c iface.Coder) (msg iface.Message, 
 		return nil, err
 	}
 
-	//read the Length from bytes to int
+	//解析长度段
 	length := binary.LittleEndian.Uint32(lengthBuf)
 	if length > MaxLength {
 		return nil, errors.New("msg too big")
 	}
 
-	//read body
+	//根据length,读取对应字节数
 	body := make([]byte, length)
 	_, err = io.ReadFull(reader, body)
 	if err != nil {
 		return nil, err
 	}
 
-	//get Type(msgId) and new a message
+	//从body中解析messageId,根据messageId,我们可以获取该messageId对应的meta信息
 	msgId := binary.LittleEndian.Uint32(body)
 	msgNew := message.MustGetMsgMeta(msgId).NewType()
 
-	//decode
+	//body字段,meta信息,用于decode,得到最终的message
 	body = body[TypeBytes:]
 	err = c.Decode(body, msgNew)
 	if err != nil {
@@ -73,9 +75,13 @@ func (p *tlvPacker) Unpack(reader io.Reader, c iface.Coder) (msg iface.Message, 
 	return msgNew.(iface.Message), nil
 }
 
+//根据制定coder序列化制定message,最后写入制定writer
 func (p *tlvPacker) Pack(writer io.Writer, c iface.Coder, msg iface.Message) error {
+
+	//获取该对应的messageId
 	msgId := msg.GetId()
 
+	//对应上图中的value
 	var buf []byte
 	buf, err := c.Encode(msg)
 
@@ -83,20 +89,25 @@ func (p *tlvPacker) Pack(writer io.Writer, c iface.Coder, msg iface.Message) err
 		return err
 	}
 
+	//对应上图, Length + Type + Value 总的长度
 	totalLen := LengthBytes + TypeBytes + len(buf)
+
+	//对应上图 Type + Value总的长度,
 	bodyLen := TypeBytes + len(buf)
+
 	pack := make([]byte, totalLen)
 
-	//put length
+	// put length
+	// Length的值 = Type + Value总的长度
 	binary.LittleEndian.PutUint32(pack, uint32(bodyLen))
 
-	//put type(msgId)
+	// put type(msgId)
 	binary.LittleEndian.PutUint32(pack[LengthBytes:], uint32(msgId))
 
-	//put value([]byte after encode)
+	// put value([]byte after encode)
 	copy(pack[(LengthBytes+TypeBytes):], buf)
 
-	//write to writer
+	// 一直写
 	if err := util.WriteFull(writer, pack); err != nil {
 		return err
 	}
@@ -104,10 +115,12 @@ func (p *tlvPacker) Pack(writer io.Writer, c iface.Coder, msg iface.Message) err
 	return nil
 }
 
+//name of tlvPacker
 func (p *tlvPacker) TypeName() string {
 	return TlvPackerName
 }
 
+//注册packer
 func init() {
 	pack.RegisterPacker(TlvPackerName, &tlvPacker{})
 }

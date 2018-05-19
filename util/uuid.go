@@ -8,7 +8,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-//from snowFlake
+/*
+	uuid生成器, from snowFlake
+ */
 const (
 	workerBits uint8 = 10 //表示节点的位数,当前最多可以生成2^10=1024个节点
 	numberBits uint8 = 12 //表示每个结点,1ms内可以生成的ID序列号,当前每1ms生成2^12=4096唯一ID
@@ -44,6 +46,8 @@ type uuidWorker struct {
 	number    int64 //当前毫秒已经生成的序列号的个数(从0开始累加)
 }
 
+//指定一个节点id,返回该节点对应的uuid生成器
+//使用多个uuidWorker时,id由调用者保证不重复
 func NewUUIDWorker(workerId int64) (*uuidWorker, error) {
 	if workerId < 0 || workerId > workerMax {
 		return nil, errors.New("error worker id")
@@ -55,6 +59,7 @@ func NewUUIDWorker(workerId int64) (*uuidWorker, error) {
 	}, nil
 }
 
+//生成一个uuid
 func (w *uuidWorker) GetUUID() int64 {
 	w.guard.Lock()
 	defer w.guard.Unlock()
@@ -63,6 +68,7 @@ func (w *uuidWorker) GetUUID() int64 {
 	if w.timestamp == curTime {
 		w.number++
 
+		//这一毫秒内生成的uuid数量已达到最大值,需要等待下一毫秒
 		if w.number > numberMax {
 			logger.Warningln("uuid's max number/ms limit, spin for 1ms")
 			//自旋还是阻塞好?? benchmark测试后,spin比block性能好那么一点点
@@ -76,10 +82,10 @@ func (w *uuidWorker) GetUUID() int64 {
 	}
 
 	// 见上文图
-	uuid := int64((w.timestamp-epoch)<<timeShift | (w.workerId << workerShift) | (w.number))
-	return uuid
+	return int64((w.timestamp-epoch)<<timeShift | (w.workerId << workerShift) | (w.number))
 }
 
+//gnet默认的uuidWorker生成一个uuid
 func GetUUID() int64 {
 	return gUUIDWorker.GetUUID()
 }

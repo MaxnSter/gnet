@@ -20,6 +20,10 @@ const (
 	rdTimeout = time.Second * 5
 )
 
+var (
+	_ iface.NetSession = (*TcpSession)(nil)
+)
+
 type TcpSession struct {
 	id      int64
 	manager *TcpServer
