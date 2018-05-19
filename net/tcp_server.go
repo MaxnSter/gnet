@@ -78,7 +78,6 @@ func (server *TcpServer) accept() {
 
 	logger.Infoln("server start running finished, waiting for connect...")
 
-
 	delayTime := 5 * time.Microsecond
 	maxDelayTime := time.Second
 	for {
@@ -207,7 +206,6 @@ func (server *TcpServer) shutAllSessions() {
 	//关闭所有在线连接
 	logger.Infoln("closing all sessions...")
 	server.AccessSession(func(Id, session interface{}) bool {
-		time.Sleep(time.Millisecond)
 		session.(iface.NetSession).Stop()
 		return true
 	})

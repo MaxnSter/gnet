@@ -13,7 +13,11 @@ import (
 
 const (
 	//TODO high water mark and small water mark
-	tcpSendBuf = 100
+	//发送缓冲区
+	sendBuf = 100
+
+	//shutdown write之后,给readLoop一个超时,指定时间内未触发io.EOF则强制关闭
+	rdTimeout = time.Second * 5
 )
 
 type TcpSession struct {
@@ -41,7 +45,7 @@ func NewTcpSession(id int64, netOp *NetOptions, conn *net.TCPConn, onCloseDone f
 		raw:         conn,
 		onCloseDone: onCloseDone,
 		closeCh:     make(chan struct{}),
-		sendCh:      make(chan iface.Message, tcpSendBuf),
+		sendCh:      make(chan iface.Message, sendBuf),
 		wg:          &sync.WaitGroup{},
 		guard:       &sync.Mutex{},
 	}
@@ -156,6 +160,15 @@ func (s *TcpSession) readLoop() {
 				return
 			}
 
+			if err, ok := err.(net.Error); ok && err.Timeout() {
+				select {
+				case <-s.closeCh:
+					//session已经调用过stop, 证明这里的timeout是writeLoop发起的,正常退出
+					return
+				default:
+				}
+			}
+
 			panic(err)
 		}
 
@@ -181,8 +194,8 @@ func (s *TcpSession) writeLoop() {
 		}
 
 		//shutdown write
-		//TODO shutdown write之后,给readLoop一个超时,指定时间内未触发io.EOF则强制关闭
 		s.raw.CloseWrite()
+		s.raw.SetReadDeadline(time.Now().Add(rdTimeout))
 		s.wg.Done()
 
 		logger.WithField("sessionId", s.id).Debugln("writeLoop stopped")

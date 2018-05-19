@@ -92,14 +92,14 @@ func (client *TcpClient) Run() {
 	}
 	client.guard.Unlock()
 
-	client.wg.Add(1)
-	go client.onNewSession(client.raw.(*net.TCPConn))
-
 	//start worker pool
 	client.netOp.Worker.Start()
 
 	//start timer
 	client.netOp.Timer.Start()
+
+	client.wg.Add(1)
+	go client.onNewSession(client.raw.(*net.TCPConn))
 
 	//忽略SIGPIPE
 	//TCP_NODELAY默认开启

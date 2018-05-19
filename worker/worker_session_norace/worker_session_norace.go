@@ -7,6 +7,7 @@ import (
 	"github.com/MaxnSter/gnet/iface"
 	"github.com/MaxnSter/gnet/logger"
 	"github.com/MaxnSter/gnet/worker"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -49,10 +50,10 @@ func NewPoolNoRace() iface.WorkerPool {
 	return &poolNoRace{
 		maxGoroutinesAmount:      DefaultMaxGoroutinesAmount,
 		maxGoroutineIdleDuration: DefaultMaxGoroutineIdleDuration,
-		lock:   &sync.Mutex{},
-		ready:  make([]*goChan, 0),
-		stopCh: make(chan struct{}),
-		closeDone:make(chan struct{}),
+		lock:      &sync.Mutex{},
+		ready:     make([]*goChan, 0),
+		stopCh:    make(chan struct{}),
+		closeDone: make(chan struct{}),
 	}
 }
 
@@ -119,19 +120,17 @@ func (p *poolNoRace) Stop() (done <-chan struct{}) {
 
 	go func() {
 		for {
-			select {
-			case <-time.After(100 * time.Millisecond):
-				p.lock.Lock()
-				logger.WithField("name", p.TypeName()).Infoln("waiting for workers exit...")
-				if p.goroutinesCount == 0 {
-					p.lock.Unlock()
-					if p.closeDone != nil {
-						logger.WithField("name", p.TypeName()).Infoln("pool stopped")
-						close(p.closeDone)
-					}
-					return
+			time.Sleep(3 * time.Second)
+
+			logger.WithFields(logrus.Fields{"name": p.TypeName(), "size": p.goroutinesCount}).
+				Infoln("waiting for workers exit...")
+
+			if p.goroutinesCount == 0 {
+				if p.closeDone != nil {
+					logger.WithField("name", p.TypeName()).Infoln("pool stopped")
+					close(p.closeDone)
 				}
-				p.lock.Unlock()
+				return
 			}
 		}
 	}()

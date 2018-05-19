@@ -28,6 +28,10 @@ func main() {
 	onConnect := func(s *net.TcpSession) {
 		r := rand.Intn(5) + 1
 		s.RunEvery(time.Now(), time.Duration(r)*time.Second, onTimer)
+		s.Send(&timer.TimerProto{
+			Id:      example.ProtoTimer,
+			TimeNow: time.Now(),
+		})
 	}
 
 	server := gnet.NewServer("0.0.0.0:2007", "server", onEvent,

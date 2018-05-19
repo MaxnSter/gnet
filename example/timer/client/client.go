@@ -28,7 +28,7 @@ func main() {
 		wg.Add(1)
 		go func() {
 
-			client := gnet.NewClient("127.0.0.1:2007", func(ev iface.Event) {
+			client := gnet.NewClient("aliyun:2007", func(ev iface.Event) {
 				switch msg := ev.Message().(type) {
 				case *timer.TimerProto:
 					logger.Debugf("receive msg, time:", msg.TimeNow.Format("Mon Jan 2 15:04:05 2006"))

@@ -1,39 +1,67 @@
 package main
 
 import (
-	"bufio"
+	"flag"
 	"fmt"
-	"os"
+	"math/rand"
+	"sync"
+	"time"
 
 	"github.com/MaxnSter/gnet"
 	"github.com/MaxnSter/gnet/example"
 	"github.com/MaxnSter/gnet/example/echo"
 	"github.com/MaxnSter/gnet/iface"
+	"github.com/MaxnSter/gnet/logger"
 	"github.com/MaxnSter/gnet/net"
 
 	_ "github.com/MaxnSter/gnet/codec/codec_protobuf"
 )
 
-func echoLoop(s iface.NetSession) {
-	scanner := bufio.NewScanner(os.Stdin)
-	for scanner.Scan() {
-		s.Send(&echo.EchoProto{example.ProtoEcho, scanner.Text()})
-	}
-	s.Stop()
+func init() {
+	rand.Seed(time.Now().UnixNano())
 }
 
 func main() {
 
-	client := gnet.NewClient("127.0.0.1:9000",
-		func(ev iface.Event) {
-			switch msg := ev.Message().(type) {
-			case *echo.EchoProto:
-				fmt.Printf("recv:%s\n", msg.Msg)
-			}
-		},
-		gnet.WithConnectedCB(func(session *net.TcpSession) {
-			go echoLoop(session)
-		}), gnet.WithCoder("protoBuf"))
+	clientNum := flag.Int("c", 1, "concurrency client number")
+	flag.Parse()
 
-	client.StartAndRun()
+	fmt.Println("//////////////////////////////////////////////")
+	fmt.Println("//         concurrency number : ", *clientNum, "///////////")
+	fmt.Println("//////////////////////////////////////////////")
+
+	wg := sync.WaitGroup{}
+
+	for i := 0; i < *clientNum; i++ {
+
+		wg.Add(1)
+		go func() {
+
+			var sendTime int64
+
+			gnet.NewClient("aliyun:2007",
+				func(ev iface.Event) {
+					switch ev.Message().(type) {
+					case *echo.EchoProto:
+						curTime := time.Now().UnixNano() / 1e6
+						logger.WithField("ttl", curTime-sendTime).Debugln("received")
+
+						t := time.Duration(rand.Intn(3) + 1)
+						time.Sleep(t * time.Second)
+						sendTime = time.Now().UnixNano() / 1e6
+						ev.Session().Send(&echo.EchoProto{Id: example.ProtoEcho, Msg: "1234567890"})
+
+					}
+				},
+				gnet.WithConnectedCB(func(session *net.TcpSession) {
+					sendTime = time.Now().UnixNano() / 1e6
+					session.Send(&echo.EchoProto{Id: example.ProtoEcho, Msg: "1234567890"})
+				}), gnet.WithCoder("protoBuf")).StartAndRun()
+
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
+
 }
