@@ -3,6 +3,7 @@ package timer
 import (
 	"container/heap"
 	"math"
+	"sync"
 	"time"
 
 	"github.com/MaxnSter/gnet/iface"
@@ -24,6 +25,8 @@ type timerNode struct {
 	//TODO 去掉该字段
 	session iface.NetSession //该user timer对应的调用者
 	cb      iface.TimeOutCB  // callback
+
+	next *timerNode
 }
 
 type timerHeap []*timerNode
@@ -80,6 +83,9 @@ type timerManager struct {
 	resumeCh    chan struct{}
 	closeCh     chan struct{}
 	closeDoneCh chan struct{}
+
+	guard        *sync.Mutex
+	freeTimeNode *timerNode
 }
 
 //指定一个worker pool,用于负责调用caller传入的callback,返回timerManager
@@ -94,7 +100,40 @@ func NewTimerManager(workers iface.WorkerPool) *timerManager {
 		resumeCh:    make(chan struct{}),
 		closeCh:     make(chan struct{}),
 		closeDoneCh: make(chan struct{}),
+		guard:       &sync.Mutex{},
 	}
+}
+
+func (tm *timerManager) put(t *timerNode) {
+	tm.guard.Lock()
+	defer tm.guard.Unlock()
+
+	if tm.freeTimeNode == nil {
+		tm.freeTimeNode = t
+	} else {
+		t.next = tm.freeTimeNode.next
+		tm.freeTimeNode.next = t
+	}
+}
+
+func (tm *timerManager) get() *timerNode {
+	tm.guard.Lock()
+	defer tm.guard.Unlock()
+
+	if tm.freeTimeNode == nil {
+		return new(timerNode)
+	}
+
+	var t *timerNode
+	if tm.freeTimeNode != nil && tm.freeTimeNode.next != nil {
+		t := tm.freeTimeNode.next
+		tm.freeTimeNode.next = t.next
+	} else {
+		t = tm.freeTimeNode
+	}
+
+	t.next = nil
+	return t
 }
 
 //开启定时器功能
@@ -116,13 +155,14 @@ func (tm *timerManager) Stop() (done <-chan struct{}) {
 //添加一个定时
 //TODO 接口优化,目前接口太丑陋了
 func (tm *timerManager) AddTimer(expire time.Time, interval time.Duration, s iface.NetSession, cb iface.TimeOutCB) (id int64) {
-	t := &timerNode{
-		expire:   expire,
-		interval: interval,
-		session:  s,
-		cb:       cb,
-		timerId:  util.GetUUID(),
-	}
+	t := tm.get()
+
+	t.expire = expire
+	t.interval = interval
+	t.session = s
+	t.cb = cb
+	t.timerId = util.GetUUID()
+	t.index = -1
 
 	tm.pause()
 	tm.timers.Push(t)
@@ -140,8 +180,10 @@ func (tm *timerManager) CancelTimer(id int64) {
 	}
 
 	tm.pause()
-	heap.Remove(&tm.timers, idx)
+	t := heap.Remove(&tm.timers, idx)
 	tm.resume()
+
+	tm.put(t.(*timerNode))
 }
 
 func (tm *timerManager) pause() {
@@ -229,6 +271,7 @@ func (tm *timerManager) update(tNodes []*timerNode) {
 
 	for i, v := range tNodes {
 		if v.interval <= 0 {
+			tm.put(tNodes[i])
 			continue
 		}
 
