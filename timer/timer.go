@@ -130,6 +130,7 @@ func (tm *timerManager) get() *timerNode {
 		tm.freeTimeNode.next = t.next
 	} else {
 		t = tm.freeTimeNode
+		tm.freeTimeNode = nil
 	}
 
 	t.next = nil
