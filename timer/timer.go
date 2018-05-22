@@ -85,7 +85,7 @@ type timerManager struct {
 	closeDoneCh chan struct{}
 
 	guard        *sync.Mutex
-	freeTimeNode *timerNode
+	freeTimeNode timerNode
 }
 
 //指定一个worker pool,用于负责调用caller传入的callback,返回timerManager
@@ -108,32 +108,22 @@ func (tm *timerManager) put(t *timerNode) {
 	tm.guard.Lock()
 	defer tm.guard.Unlock()
 
-	if tm.freeTimeNode == nil {
-		tm.freeTimeNode = t
-	} else {
-		t.next = tm.freeTimeNode.next
-		tm.freeTimeNode.next = t
-	}
+	t.next = tm.freeTimeNode.next
+	tm.freeTimeNode.next = t
 }
 
 func (tm *timerManager) get() *timerNode {
 	tm.guard.Lock()
 	defer tm.guard.Unlock()
 
-	if tm.freeTimeNode == nil {
+	if tm.freeTimeNode.next == nil {
 		return new(timerNode)
 	}
 
-	var t *timerNode
-	if tm.freeTimeNode != nil && tm.freeTimeNode.next != nil {
-		t := tm.freeTimeNode.next
-		tm.freeTimeNode.next = t.next
-	} else {
-		t = tm.freeTimeNode
-		tm.freeTimeNode = nil
-	}
-
+	t := tm.freeTimeNode.next
+	tm.freeTimeNode.next = t.next
 	t.next = nil
+
 	return t
 }
 
