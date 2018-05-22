@@ -10,7 +10,7 @@ import (
 
 /*
 	uuid生成器, from snowFlake
- */
+*/
 const (
 	workerBits uint8 = 10 //表示节点的位数,当前最多可以生成2^10=1024个节点
 	numberBits uint8 = 12 //表示每个结点,1ms内可以生成的ID序列号,当前每1ms生成2^12=4096唯一ID
@@ -64,6 +64,7 @@ func (w *uuidWorker) GetUUID() int64 {
 	w.guard.Lock()
 	defer w.guard.Unlock()
 
+try:
 	curTime := time.Now().UnixNano() / 1e6
 	if w.timestamp == curTime {
 		w.number++
@@ -75,6 +76,7 @@ func (w *uuidWorker) GetUUID() int64 {
 			for curTime <= w.timestamp {
 				curTime = time.Now().UnixNano() / 1e6
 			}
+			goto try
 		}
 	} else {
 		w.number = 0
