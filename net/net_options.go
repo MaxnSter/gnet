@@ -26,11 +26,11 @@ type OnServerClosedFunc func()
 
 type NetOpFunc func(options *NetOptions)
 
-func (op *NetOptions) ReadMessage(reader io.Reader) (iface.Message, error) {
+func (op *NetOptions) ReadMessage(reader io.Reader) (interface{}, error) {
 	return op.Packer.Unpack(reader, op.Coder)
 }
 
-func (op *NetOptions) WriteMessage(writer io.Writer, msg iface.Message) error {
+func (op *NetOptions) WriteMessage(writer io.Writer, msg interface{}) error {
 	return op.Packer.Pack(writer, op.Coder, msg)
 }
 

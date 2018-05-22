@@ -8,6 +8,7 @@ import (
 )
 
 const (
+	// the name of coderProtobuf
 	CoderProtoTypeName = "protoBuf"
 )
 
@@ -15,13 +16,15 @@ var (
 	_ iface.Coder = (*coderProtobuf)(nil)
 )
 
-type coderProtobuf struct {
-}
+// coderProtobuf uses protobuf marshaller and unmarshaller
+type coderProtobuf struct{}
 
+// return the name of coderProtobuf
 func (p *coderProtobuf) TypeName() string {
 	return CoderProtoTypeName
 }
 
+// Encode encodes an object into slice of bytes
 func (p *coderProtobuf) Encode(msg interface{}) (data []byte, err error) {
 	if protoMsg, ok := msg.(proto.Message); ok {
 		return proto.Marshal(protoMsg)
@@ -31,6 +34,7 @@ func (p *coderProtobuf) Encode(msg interface{}) (data []byte, err error) {
 	}
 }
 
+// Decode decodes an object from slice of bytes
 func (p *coderProtobuf) Decode(data []byte, pMsg interface{}) error {
 	if protoMsg, ok := pMsg.(proto.Message); ok {
 		return proto.Unmarshal(data, protoMsg)
@@ -40,6 +44,7 @@ func (p *coderProtobuf) Decode(data []byte, pMsg interface{}) error {
 	}
 }
 
+// register coderProtobuf
 func init() {
 	codec.RegisterCoder(CoderProtoTypeName, &coderProtobuf{})
 }

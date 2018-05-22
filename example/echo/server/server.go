@@ -2,19 +2,19 @@ package main
 
 import (
 	"github.com/MaxnSter/gnet"
-	"github.com/MaxnSter/gnet/example/echo"
 	"github.com/MaxnSter/gnet/iface"
 
-	_ "github.com/MaxnSter/gnet/codec/codec_protobuf"
+	_ "github.com/MaxnSter/gnet/codec/codec_byte"
+	_ "github.com/MaxnSter/gnet/pack/pack_text"
 )
 
 func main() {
 	s := gnet.NewServer("0.0.0.0:2007", "server", func(ev iface.Event) {
 		switch msg := ev.Message().(type) {
-		case *echo.EchoProto:
+		case []byte, *[]byte:
 			ev.Session().Send(msg)
 		}
-	}, gnet.WithCoder("protoBuf"))
+	}, gnet.WithCoder("byte"), gnet.WithPacker("text"))
 
 	s.StartAndRun()
 }

@@ -35,7 +35,7 @@ type TcpSession struct {
 
 	closeCh chan struct{}
 	wg      *sync.WaitGroup
-	sendCh  chan iface.Message
+	sendCh  chan interface{}
 	raw     *net.TCPConn
 	ctx     sync.Map
 
@@ -49,7 +49,7 @@ func NewTcpSession(id int64, netOp *NetOptions, conn *net.TCPConn, onCloseDone f
 		raw:         conn,
 		onCloseDone: onCloseDone,
 		closeCh:     make(chan struct{}),
-		sendCh:      make(chan iface.Message, sendBuf),
+		sendCh:      make(chan interface{}, sendBuf),
 		wg:          &sync.WaitGroup{},
 		guard:       &sync.Mutex{},
 	}
@@ -178,7 +178,6 @@ func (s *TcpSession) readLoop() {
 
 		logger.WithFields(logrus.Fields{
 			"sessionId": s.id,
-			"messageId": msg.GetId(),
 		}).Debugln("receive message from socket")
 
 		s.netOp.PostEvent(&iface.MessageEvent{EventSes: s, Msg: msg})
@@ -220,7 +219,6 @@ func (s *TcpSession) writeLoop() {
 
 		logger.WithFields(logrus.Fields{
 			"sessionId": s.id,
-			"messageId": msg.GetId(),
 		}).Debugln("send message to socket")
 	}
 }
@@ -233,7 +231,7 @@ func (s *TcpSession) StoreCtx(k, v interface{}) {
 	s.ctx.Store(k, v)
 }
 
-func (s *TcpSession) Send(msg iface.Message) {
+func (s *TcpSession) Send(msg interface{}) {
 	s.sendCh <- msg
 }
 

@@ -34,7 +34,7 @@ type tlvPacker struct {
 }
 
 //从指定reader中读数据,并根据指定的coder反序列化出一个message
-func (p *tlvPacker) Unpack(reader io.Reader, c iface.Coder) (msg iface.Message, err error) {
+func (p *tlvPacker) Unpack(reader io.Reader, c iface.Coder) (msg interface{}, err error) {
 
 	//读取长度段
 	lengthBuf := make([]byte, LengthBytes)
@@ -72,14 +72,14 @@ func (p *tlvPacker) Unpack(reader io.Reader, c iface.Coder) (msg iface.Message, 
 		return nil, err
 	}
 
-	return msgNew.(iface.Message), nil
+	return msgNew, nil
 }
 
 //根据制定coder序列化制定message,最后写入制定writer
-func (p *tlvPacker) Pack(writer io.Writer, c iface.Coder, msg iface.Message) error {
+func (p *tlvPacker) Pack(writer io.Writer, c iface.Coder, msg interface{}) error {
 
 	//获取该对应的messageId
-	msgId := msg.GetId()
+	msgId := msg.(iface.Message).GetId()
 
 	//对应上图中的value
 	var buf []byte

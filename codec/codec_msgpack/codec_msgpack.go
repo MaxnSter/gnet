@@ -7,28 +7,33 @@ import (
 )
 
 const (
+	// the name of coderMsgpack
 	CoderMsgPackTypeName = "msgpack"
 )
 
 var (
-	_ iface.Coder = (*CoderMsgpack)(nil)
+	_ iface.Coder = (*coderMsgpack)(nil)
 )
 
-type CoderMsgpack struct {
-}
+// coderMsgpack uses messagepack marshaler and unmarshaller
+type coderMsgpack struct {}
 
-func (c CoderMsgpack) TypeName() string {
+// return the name of coderMsgpack
+func (c coderMsgpack) TypeName() string {
 	return CoderMsgPackTypeName
 }
 
-func (c CoderMsgpack) Encode(msg interface{}) (data []byte, err error) {
+// Encode encodes an object into slice of bytes
+func (c coderMsgpack) Encode(msg interface{}) (data []byte, err error) {
 	return msgpack.Marshal(msg)
 }
 
-func (c CoderMsgpack) Decode(data []byte, pMsg interface{}) error {
+// Decode decodes an object from slice of bytes
+func (c coderMsgpack) Decode(data []byte, pMsg interface{}) error {
 	return msgpack.Unmarshal(data, pMsg)
 }
 
+// register coderMsgpack
 func init() {
-	codec.RegisterCoder(CoderMsgPackTypeName, &CoderMsgpack{})
+	codec.RegisterCoder(CoderMsgPackTypeName, &coderMsgpack{})
 }

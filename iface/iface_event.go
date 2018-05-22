@@ -2,19 +2,19 @@ package iface
 
 type Event interface {
 	Session() NetSession
-	Message() Message
+	Message() interface{}
 }
 
 type MessageEvent struct {
 	EventSes NetSession
-	Msg      Message
+	Msg      interface{}
 }
 
 func (msg *MessageEvent) Session() NetSession {
 	return msg.EventSes
 }
 
-func (msg *MessageEvent) Message() Message {
+func (msg *MessageEvent) Message() interface{}{
 	return msg.Msg
 }
 
