@@ -64,6 +64,7 @@ func (client *TcpClient) Start() error {
 
 		logger.WithField("error", err).Errorln("client connect error, retrying...")
 		curRetryDuration *= 2
+		time.Sleep(curRetryDuration)
 	}
 
 	//still can't connect to server
