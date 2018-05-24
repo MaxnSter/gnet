@@ -1,6 +1,9 @@
 package util
 
-import "unsafe"
+import (
+	"reflect"
+	"unsafe"
+)
 
 // BytesToString convert []byte type to string type
 func BytesToString(b []byte) string {
@@ -8,10 +11,9 @@ func BytesToString(b []byte) string {
 }
 
 // StringToBytes convert string type to []byte type
-// NOTE: NOTE: panic if modify the member value of the []byte.
 func StringToBytes(s string) []byte {
-	sp := (*[2]uintptr)(unsafe.Pointer(&s))
-	bp := [3]uintptr{sp[0], sp[1], sp[1]}
+	sp := (*reflect.StringHeader)(unsafe.Pointer(&s))
+	bp := reflect.SliceHeader{Data:sp.Data, Len:sp.Len, Cap:sp.Len}
 	return *(*[]byte)(unsafe.Pointer(&bp))
 }
 

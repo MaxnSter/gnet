@@ -14,7 +14,7 @@ func main() {
 		case []byte, *[]byte:
 			ev.Session().Send(msg)
 		}
-	}, gnet.WithCoder("byte"), gnet.WithPacker("text"))
+	},gnet.WithCoder("byte"), gnet.WithPacker("text"))
 
 	s.StartAndRun()
 }

@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/MaxnSter/gnet/iface"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,9 +14,9 @@ type tSession struct {
 	race *int
 }
 
-func (ts *tSession) ID() int64                  { return ts.Id }
-func (ts *tSession) Send(message iface.Message) {}
-func (ts *tSession) Stop()                      {}
+func (ts *tSession) ID() int64                { return ts.Id }
+func (ts *tSession) Send(message interface{}) {}
+func (ts *tSession) Stop()                    {}
 
 func (ts *tSession) Run() {
 	for i := 0; i < math.MaxInt16; i++ {

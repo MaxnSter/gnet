@@ -22,8 +22,8 @@ var (
 	scannerEOF = errors.New("scanner eof")
 )
 
-
 // textPacker is packer for text protocol: line end with '\r\n'
+// NOTE: Must use with byte coder
 type textPacker struct {
 }
 
