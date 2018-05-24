@@ -3,7 +3,6 @@ package net
 import (
 	"errors"
 	"net"
-	"net/rpc"
 	"os"
 	"os/signal"
 	"sync"
@@ -216,7 +215,6 @@ func (server *TcpServer) StartAndRun() {
 	if err := server.Start(); err != nil {
 		panic(err)
 	}
-	rpc.Register()
 	server.Run()
 }
 
