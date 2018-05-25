@@ -94,7 +94,7 @@ func (s *TcpSession) Start() {
 
 	//tell sessionManager we are done
 	if s.onCloseDone != nil {
-		logger.WithField("sessionId", s.id).Debugln("session closeDone, notify server")
+		logger.WithField("sessionId", s.id).Debugln("session closeDone, notify memcached_server")
 		s.onCloseDone(s)
 	}
 

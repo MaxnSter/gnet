@@ -14,7 +14,7 @@ func (msg *MessageEvent) Session() NetSession {
 	return msg.EventSes
 }
 
-func (msg *MessageEvent) Message() interface{}{
+func (msg *MessageEvent) Message() interface{} {
 	return msg.Msg
 }
 

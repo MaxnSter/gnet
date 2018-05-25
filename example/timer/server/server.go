@@ -34,7 +34,7 @@ func main() {
 		})
 	}
 
-	server := gnet.NewServer("0.0.0.0:2007", "server", onEvent,
+	server := gnet.NewServer("0.0.0.0:2007", "memcached_server", onEvent,
 		gnet.WithConnectedCB(onConnect), gnet.WithCoder("msgpack"))
 
 	server.StartAndRun()

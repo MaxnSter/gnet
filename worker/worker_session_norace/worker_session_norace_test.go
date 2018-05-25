@@ -20,7 +20,6 @@ func (ts *tSession) Run() {
 	}
 }
 
-
 func TestNewPoolNoRace(t *testing.T) {
 	p := NewPoolNoRace()
 	assert.NotNil(t, p, "pool should not be nil")

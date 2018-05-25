@@ -48,7 +48,7 @@ func (client *TcpClient) Start() error {
 	client.started = true
 	client.guard.Unlock()
 
-	logger.WithField("addr", client.addr).Infoln("client connecting to server...")
+	logger.WithField("addr", client.addr).Infoln("client connecting to memcached_server...")
 
 	var conn net.Conn
 	var err error
@@ -58,7 +58,7 @@ func (client *TcpClient) Start() error {
 		conn, err = net.Dial("tcp", client.addr)
 
 		if err == nil {
-			logger.WithField("addr", client.addr).Infoln("client connected to server")
+			logger.WithField("addr", client.addr).Infoln("client connected to memcached_server")
 			break
 		}
 
@@ -67,7 +67,7 @@ func (client *TcpClient) Start() error {
 		time.Sleep(curRetryDuration)
 	}
 
-	//still can't connect to server
+	//still can't connect to memcached_server
 	if err != nil {
 		panic(err)
 	}

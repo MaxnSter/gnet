@@ -9,12 +9,12 @@ import (
 )
 
 func main() {
-	s := gnet.NewServer("0.0.0.0:2007", "server", func(ev iface.Event) {
+	s := gnet.NewServer("0.0.0.0:2007", "memcached_server", func(ev iface.Event) {
 		switch msg := ev.Message().(type) {
 		case []byte, *[]byte:
 			ev.Session().Send(msg)
 		}
-	},gnet.WithCoder("byte"), gnet.WithPacker("text"))
+	}, gnet.WithCoder("byte"), gnet.WithPacker("text"))
 
 	s.StartAndRun()
 }

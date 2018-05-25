@@ -17,7 +17,7 @@ type NetOptions struct {
 	OnClose        OnSessionCloseFunc
 	OnServerClosed OnServerClosedFunc
 
-	//TODO more, such as socket options...
+	//TODO more, such as socket Options...
 }
 
 type OnConnectedFunc func(session *TcpSession)

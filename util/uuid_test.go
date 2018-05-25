@@ -41,4 +41,3 @@ func TestGetUUID(t *testing.T) {
 		}
 	}
 }
-

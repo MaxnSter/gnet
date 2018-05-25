@@ -16,7 +16,7 @@ var (
 )
 
 // coderMsgpack uses messagepack marshaler and unmarshaller
-type coderMsgpack struct {}
+type coderMsgpack struct{}
 
 // return the name of coderMsgpack
 func (c coderMsgpack) TypeName() string {
