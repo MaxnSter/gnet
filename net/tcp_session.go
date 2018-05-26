@@ -1,6 +1,7 @@
 package net
 
 import (
+	"bufio"
 	"io"
 	"net"
 	"sync"
@@ -37,13 +38,14 @@ type TcpSession struct {
 	wg      *sync.WaitGroup
 	sendCh  chan interface{}
 	raw     *net.TCPConn
+	buf     *bufio.ReadWriter
 	ctx     sync.Map
 
 	onCloseDone func(*TcpSession)
 }
 
 func NewTcpSession(id int64, netOp *NetOptions, conn *net.TCPConn, onCloseDone func(*TcpSession)) *TcpSession {
-	return &TcpSession{
+	s := &TcpSession{
 		id:          id,
 		netOp:       netOp,
 		raw:         conn,
@@ -53,6 +55,9 @@ func NewTcpSession(id int64, netOp *NetOptions, conn *net.TCPConn, onCloseDone f
 		wg:          &sync.WaitGroup{},
 		guard:       &sync.Mutex{},
 	}
+
+	s.buf = bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
+	return s
 }
 
 func (s *TcpSession) SetManager(m *TcpServer) {
@@ -154,7 +159,7 @@ func (s *TcpSession) readLoop() {
 		default:
 		}
 
-		msg, err := s.netOp.ReadMessage(s.raw)
+		msg, err := s.netOp.ReadMessage(s.buf)
 		if err != nil {
 
 			if err == io.EOF {
@@ -212,7 +217,8 @@ func (s *TcpSession) writeLoop() {
 			break
 		}
 
-		err = s.netOp.WriteMessage(s.raw, msg)
+		err = s.netOp.WriteMessage(s.buf, msg)
+		s.buf.Flush()
 		if err != nil {
 			panic(err)
 		}

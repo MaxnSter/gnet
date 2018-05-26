@@ -1,8 +1,6 @@
 package main
 
 import (
-	_ "net/http/pprof"
-
 	"github.com/MaxnSter/gnet/example/memcached/memcached_server"
 )
 

@@ -29,26 +29,29 @@ type textPacker struct {
 
 // Unpack read every single line end with \r\n from socket
 func (p *textPacker) Unpack(reader io.Reader, c iface.Coder) (msg interface{}, err error) {
-	scan := bufio.NewScanner(reader)
-	scan.Split(p.split)
 
-	if scan.Scan() {
-		var b []byte
+	//FIXME
+	rd, _ := reader.(*bufio.ReadWriter)
+	buf, err := rd.ReadBytes('\n')
 
-		err := c.Decode(scan.Bytes(), &b)
-		if err != nil {
-			return nil, err
-		}
-		return b, nil
-
-	} else {
-		err = scan.Err()
-		if err == scannerEOF {
-			err = io.EOF
-		}
-
+	if err != nil {
 		return nil, err
 	}
+
+	if len(buf) < 1 || buf[len(buf)-2] != '\r' {
+		return nil, errors.New("msg not end with \r\n")
+	}
+
+	var data []byte
+	err = c.Decode(buf, &data)
+
+	if err != nil {
+		return nil, err
+	}
+
+	msg = data
+	return msg, nil
+
 }
 
 // Packer encode msg and end with '\r\n', then send to socket

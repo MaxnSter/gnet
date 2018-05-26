@@ -55,7 +55,7 @@ func NewMemcachedServer() *memcachedServer {
 func (ms *memcachedServer) onEvent(ev iface.Event) {
 	msg := ev.Message().([]byte)
 	idx := bytes.IndexByte(msg, ' ')
-	buf := ms.buf
+	buf := new(bytes.Buffer)
 	buf.Reset()
 
 	//错误的命令格式
@@ -93,7 +93,9 @@ func (ms *memcachedServer) onEvent(ev iface.Event) {
 // StartAndRun根据传入的endpoint启动memcachedServer
 func (ms *memcachedServer) StartAndRun(addr string) {
 	ms.netServer = gnet.NewServer(addr, "memcached", ms.onEvent,
-		gnet.WithCoder("byte"), gnet.WithPacker("text"), gnet.WithWorkerPool("poolRaceOther"))
+		gnet.WithCoder("byte"),
+		gnet.WithPacker("text"),
+		gnet.WithWorkerPool("poolRaceOther"))
 
 	ms.netServer.StartAndRun()
 }

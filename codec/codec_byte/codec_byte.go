@@ -35,6 +35,11 @@ func (coder *coderByte) Encode(v interface{}) (data []byte, err error) {
 
 // Decode return raw slice of bytes
 func (coder *coderByte) Decode(data []byte, v interface{}) (err error) {
+
+	if _, ok := v.(*[]byte); !ok {
+		return fmt.Errorf("%T is not a *[]byte", v)
+	}
+
 	reflect.Indirect(reflect.ValueOf(v)).SetBytes(data)
 	return nil
 }
