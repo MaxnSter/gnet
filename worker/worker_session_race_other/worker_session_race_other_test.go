@@ -158,7 +158,7 @@ func TestPoolRaceOther_Stop(t *testing.T) {
 
 	select {
 	case <-time.After(10 * time.Second):
-		assert.Fail(t, "queue not stopped")
+		assert.Fail(t, "queue1 not stopped")
 	case <-q.Stop():
 	}
 }
@@ -188,7 +188,7 @@ func TestPoolRaceOther_Stop2(t *testing.T) {
 
 	select {
 	case <-time.After(6 * time.Second):
-		assert.Fail(t, "queue stopped before all task finished!")
+		assert.Fail(t, "queue1 stopped before all task finished!")
 	case <-wgDoneCh:
 	}
 }

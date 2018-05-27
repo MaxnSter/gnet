@@ -4,18 +4,20 @@ import (
 	"bufio"
 	"io"
 	"net"
+	"runtime/debug"
 	"sync"
 	"time"
 
 	"github.com/MaxnSter/gnet/iface"
 	"github.com/MaxnSter/gnet/logger"
+	"github.com/MaxnSter/gnet/util"
 	"github.com/sirupsen/logrus"
 )
 
 const (
 	//TODO high water mark and small water mark
 	//发送缓冲区
-	sendBuf = 100
+	sendBuf = 128
 
 	//shutdown write之后,给readLoop一个超时,指定时间内未触发io.EOF则强制关闭
 	rdTimeout = time.Second * 5
@@ -36,10 +38,11 @@ type TcpSession struct {
 
 	closeCh chan struct{}
 	wg      *sync.WaitGroup
-	sendCh  chan interface{}
-	raw     *net.TCPConn
-	buf     *bufio.ReadWriter
-	ctx     sync.Map
+	//sendCh   chan interface{}
+	sendQue  *util.MsgQueue
+	raw      *net.TCPConn
+	connWrap *bufio.ReadWriter
+	ctx      sync.Map
 
 	onCloseDone func(*TcpSession)
 }
@@ -51,12 +54,13 @@ func NewTcpSession(id int64, netOp *NetOptions, conn *net.TCPConn, onCloseDone f
 		raw:         conn,
 		onCloseDone: onCloseDone,
 		closeCh:     make(chan struct{}),
-		sendCh:      make(chan interface{}, sendBuf),
-		wg:          &sync.WaitGroup{},
-		guard:       &sync.Mutex{},
+		//sendCh:      make(chan interface{}, sendBuf),
+		sendQue: util.NewMsgQueueWithCap(sendBuf),
+		wg:      &sync.WaitGroup{},
+		guard:   &sync.Mutex{},
 	}
 
-	s.buf = bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
+	s.connWrap = bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
 	return s
 }
 
@@ -133,7 +137,8 @@ func (s *TcpSession) Stop() {
 
 	//send signal to writeLoop, shutdown wr until nothing more to send
 	logger.WithField("sessionId", s.id).Debugln("close WriteLoop...")
-	s.sendCh <- nil
+	//s.sendCh <- nil
+	s.sendQue.Add(nil)
 }
 
 func (s *TcpSession) readLoop() {
@@ -159,7 +164,7 @@ func (s *TcpSession) readLoop() {
 		default:
 		}
 
-		msg, err := s.netOp.ReadMessage(s.buf)
+		msg, err := s.netOp.ReadMessage(s.connWrap)
 		if err != nil {
 
 			if err == io.EOF {
@@ -198,6 +203,7 @@ func (s *TcpSession) writeLoop() {
 			}).Errorln("session writeLoop error")
 
 			//通知readLoop 关闭
+			debug.PrintStack()
 			s.Stop()
 		}
 
@@ -212,21 +218,52 @@ func (s *TcpSession) writeLoop() {
 	logger.WithField("sessionId", s.id).Debugln("session start writeLoop")
 
 	var err error
-	for msg := range s.sendCh {
-		if msg == nil {
-			break
+	var msgs []interface{}
+
+	for {
+		msgs = msgs[0:0]
+		s.sendQue.Pick(&msgs, s.closeCh)
+
+		for _, msg := range msgs {
+
+			if msg == nil {
+				//TODO error handing?
+				s.connWrap.Flush()
+				return
+			}
+
+			logger.WithFields(logrus.Fields{
+				"sessionId": s.id,
+			}).Debugln("send message to socket")
+
+			err = s.netOp.WriteMessage(s.connWrap, msg)
+			if err != nil {
+				panic(err)
+			}
+
 		}
 
-		err = s.netOp.WriteMessage(s.buf, msg)
-		s.buf.Flush()
+		err = s.connWrap.Flush()
 		if err != nil {
 			panic(err)
 		}
-
-		logger.WithFields(logrus.Fields{
-			"sessionId": s.id,
-		}).Debugln("send message to socket")
 	}
+
+	//for msg := range s.sendCh {
+	//	if msg == nil {
+	//		break
+	//	}
+	//
+	//	err = s.netOp.WriteMessage(s.connWrap, msg)
+	//	s.connWrap.Flush()
+	//	if err != nil {
+	//		panic(err)
+	//	}
+	//
+	//	logger.WithFields(logrus.Fields{
+	//		"sessionId": s.id,
+	//	}).Debugln("send message to socket")
+	//}
 }
 
 func (s *TcpSession) LoadCtx(k interface{}) (v interface{}, ok bool) {
@@ -238,7 +275,26 @@ func (s *TcpSession) StoreCtx(k, v interface{}) {
 }
 
 func (s *TcpSession) Send(msg interface{}) {
-	s.sendCh <- msg
+
+	select {
+	case <-s.closeCh:
+		return
+	default:
+	}
+
+	s.sendQue.Add(msg)
+
+	//select {
+	//case s.sendCh <- msg:
+	//	return
+	//case <-s.closeCh:
+	//	return
+	//default:
+	//	logger.Debugln("session sendQueue size limit\n")
+	//}
+	//
+	//s.sendCh <- msg
+
 }
 
 func (s *TcpSession) RunAt(runAt time.Time, cb iface.TimeOutCB) (timerId int64) {

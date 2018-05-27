@@ -55,7 +55,7 @@ func NewMemcachedServer() *memcachedServer {
 func (ms *memcachedServer) onEvent(ev iface.Event) {
 	msg := ev.Message().([]byte)
 	idx := bytes.IndexByte(msg, ' ')
-	buf := ms.buf
+	buf := new(bytes.Buffer)
 	buf.Reset()
 
 	//错误的命令格式

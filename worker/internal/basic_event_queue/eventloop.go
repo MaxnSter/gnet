@@ -66,6 +66,22 @@ func (loop *EventQueue) loop() {
 	}
 }
 
+func (loop *EventQueue) loopWithHook(hooker func()) {
+
+	for cb := range loop.queue {
+		if cb == nil {
+			break
+		}
+
+		hooker()
+		loop.cbWrapper(cb)
+	}
+
+	if loop.closeDone != nil {
+		close(loop.closeDone)
+	}
+}
+
 func (loop *EventQueue) Stop() (done <-chan struct{}) {
 	loop.queue <- nil
 	return loop.closeDone
