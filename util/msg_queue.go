@@ -24,7 +24,7 @@ func NewMsgQueue() *MsgQueue {
 // NewMsgQueueWithCap创建并返回一个指定容量的消息队列
 func NewMsgQueueWithCap(cap int) *MsgQueue {
 	q := &MsgQueue{
-		wakeup: make(chan struct{}, 0),
+		wakeup: make(chan struct{}, 1),
 		list1:  make([]interface{}, 0, cap/2),
 		list2:  make([]interface{}, 0, cap/2+cap%2),
 		lock:   &sync.Mutex{},
@@ -45,6 +45,9 @@ func (q *MsgQueue) Add(msg interface{}) {
 	*curList = append(*curList, msg)
 	q.lock.Unlock()
 
+	//注意,此处有个竞态!
+	//Add执行到此处时,len(*consumeList)正好为0但此处的select先执行,
+	//pick就会一直阻塞.因此我们把wake channel size设为1
 	select {
 	case q.wakeup <- struct{}{}:
 	default:
@@ -53,37 +56,16 @@ func (q *MsgQueue) Add(msg interface{}) {
 
 // Pick获取当前队列中的所有元素,若当前队列为空,则阻塞直至有新元素被添加
 func (q *MsgQueue) Pick(retList *[]interface{}) {
-
-	q.lock.Lock()
-	consumeList := q.consume()
-	q.lock.Unlock()
-
-	if len(*consumeList) == 0 {
-
-		<-q.wakeup
-
-		q.lock.Lock()
-		consumeList = q.consume()
-		q.lock.Unlock()
-	}
-
-	//在这里,consumeList与produceList一定不同,因此不需要上锁
-	for i := 0; i < len(*consumeList); i++ {
-		*retList = append(*retList, (*consumeList)[i])
-		(*consumeList)[i] = nil
-	}
-
-	*consumeList = (*consumeList)[0:0]
+	q.PickWithSignal(nil, retList)
 }
 
-// PickWithSignal与Pick相同,但当signal可读时,强制退出循环状态
+// PickWithSignal与Pick相同,但当signal可读时,强制退出阻塞状态并返回
 func (q *MsgQueue) PickWithSignal(signal <-chan struct{}, retList *[]interface{}) {
-
 	q.lock.Lock()
 	consumeList := q.consume()
 	q.lock.Unlock()
 
-	if len(*consumeList) == 0 {
+	for len(*consumeList) == 0 {
 
 		select {
 		case <-signal:
@@ -94,7 +76,6 @@ func (q *MsgQueue) PickWithSignal(signal <-chan struct{}, retList *[]interface{}
 			consumeList = q.consume()
 			q.lock.Unlock()
 		}
-
 	}
 
 	for i := 0; i < len(*consumeList); i++ {
@@ -103,40 +84,16 @@ func (q *MsgQueue) PickWithSignal(signal <-chan struct{}, retList *[]interface{}
 	}
 
 	*consumeList = (*consumeList)[0:0]
+
 }
 
-// PickWithSignal与Pick相同,但当ctx active时,强制退出循环状态
+// PickWithSignal与Pick相同,但当ctx active时,强制退出阻塞状态并返回
 func (q *MsgQueue) PickWithCtx(ctx context.Context, retList *[]interface{}) {
-
-	q.lock.Lock()
-	consumeList := q.consume()
-	q.lock.Unlock()
-
-	if len(*consumeList) == 0 {
-
-		select {
-		case <-ctx.Done():
-			return
-		case <-q.wakeup:
-
-			q.lock.Lock()
-			consumeList = q.consume()
-			q.lock.Unlock()
-		}
-
-	}
-
-	for i := 0; i < len(*consumeList); i++ {
-		*retList = append(*retList, (*consumeList)[i])
-		(*consumeList)[i] = nil
-	}
-
-	*consumeList = (*consumeList)[0:0]
+	q.PickWithSignal(ctx.Done(), retList)
 }
 
 // q.lock must locked
 func (q *MsgQueue) consume() (consumeList *[]interface{}) {
-
 	if q.produceList == &q.list1 {
 		consumeList = &q.list1
 		q.produceList = &q.list2
@@ -167,5 +124,4 @@ func (q *MsgQueue) consume() (consumeList *[]interface{}) {
 	//		return
 	//	}
 	//}
-
 }
