@@ -33,7 +33,6 @@ func NewMsgQueueWithCap(cap int) *MsgQueue {
 	q.lock.Lock()
 	q.produceList = &q.list1
 	q.lock.Unlock()
-	//atomic.StorePointer(&q.produceList, unsafe.Pointer(&q.list1))
 	return q
 }
 
@@ -41,7 +40,6 @@ func NewMsgQueueWithCap(cap int) *MsgQueue {
 func (q *MsgQueue) Add(msg interface{}) {
 	q.lock.Lock()
 	curList := q.produceList
-	//curList := (*[]interface{})(atomic.LoadPointer(&q.produceList))
 	*curList = append(*curList, msg)
 	q.lock.Unlock()
 
@@ -103,25 +101,4 @@ func (q *MsgQueue) consume() (consumeList *[]interface{}) {
 	}
 
 	return
-
-	//for {
-	//
-	//	if atomic.CompareAndSwapPointer(
-	//		&q.produceList,
-	//		unsafe.Pointer(&q.list1),
-	//		unsafe.Pointer(&q.list2)) {
-	//
-	//		consumeList = &q.list1
-	//		return
-	//	}
-	//
-	//	if atomic.CompareAndSwapPointer(
-	//		&q.produceList,
-	//		unsafe.Pointer(&q.list2),
-	//		unsafe.Pointer(&q.list1)) {
-	//
-	//		consumeList = &q.list2
-	//		return
-	//	}
-	//}
 }
