@@ -9,7 +9,7 @@ import (
 
 const (
 	poolName  = "poolRaceOther"
-	queueSize = 4096
+	queueSize = 1024
 )
 
 func init() {
@@ -38,17 +38,21 @@ func (p *poolRaceOther) Start() {
 	p.queue.Start()
 }
 
-func (p *poolRaceOther) Stop() (done <-chan struct{}) {
+func (p *poolRaceOther) StopAsync() (done <-chan struct{}) {
 	logger.WithField("name", p.TypeName()).Infoln("pool stopping...")
-	return p.queue.Stop()
+	return p.queue.StopAsync()
+}
+
+func (p *poolRaceOther) Stop() {
+	<-p.StopAsync()
+	logger.WithField("name", p.TypeName()).Infoln("pool stopped...")
 }
 
 func (p *poolRaceOther) Put(session iface.NetSession, cb func()) {
-	//if err := p.queue.Put(cb); err != nil {
-	//	logger.WithField("name", p.TypeName()).Debugln("pool size limit")
-	//	p.queue.MustPut(cb)
-	//}
-	p.queue.MustPut(cb)
+	if err := p.queue.Put(cb); err != nil {
+		//logger.WithField("name", p.TypeName()).Warningln("pool size limit")
+		p.queue.MustPut(cb)
+	}
 }
 
 func (p *poolRaceOther) TryPut(session iface.NetSession, cb func()) bool {

@@ -40,6 +40,8 @@ func (p *textPacker) Unpack(reader io.Reader, c iface.Coder) (msg interface{}, e
 
 	if len(buf) < 1 || buf[len(buf)-2] != '\r' {
 		return nil, errors.New("msg not end with \r\n")
+	} else {
+		buf = buf[:len(buf)-2]
 	}
 
 	var data []byte

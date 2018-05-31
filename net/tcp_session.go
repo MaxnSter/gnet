@@ -6,6 +6,7 @@ import (
 	"net"
 	"runtime/debug"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/MaxnSter/gnet/iface"
@@ -23,6 +24,14 @@ const (
 	rdTimeout = time.Second * 5
 )
 
+type sessionStatus = int64
+
+const (
+	ready sessionStatus = iota
+	start
+	stop
+)
+
 var (
 	_ iface.NetSession = (*TcpSession)(nil)
 )
@@ -30,20 +39,21 @@ var (
 type TcpSession struct {
 	id      int64
 	manager *TcpServer
-	netOp   *NetOptions
 
+	netOp *NetOptions
+	ctx   sync.Map
+
+	status  sessionStatus
 	guard   *sync.Mutex
 	started bool
 	closed  bool
 
-	closeCh chan struct{}
-	wg      *sync.WaitGroup
-	//sendCh   chan interface{}
-	sendQue  *util.MsgQueue
 	raw      *net.TCPConn
 	connWrap *bufio.ReadWriter
-	ctx      sync.Map
+	sendQue  *util.MsgQueue
 
+	wg          *sync.WaitGroup
+	closeCh     chan struct{}
 	onCloseDone func(*TcpSession)
 }
 
@@ -54,10 +64,9 @@ func NewTcpSession(id int64, netOp *NetOptions, conn *net.TCPConn, onCloseDone f
 		raw:         conn,
 		onCloseDone: onCloseDone,
 		closeCh:     make(chan struct{}),
-		//sendCh:      make(chan interface{}, sendBuf),
-		sendQue: util.NewMsgQueueWithCap(sendBuf),
-		wg:      &sync.WaitGroup{},
-		guard:   &sync.Mutex{},
+		sendQue:     util.NewMsgQueueWithCap(sendBuf),
+		wg:          &sync.WaitGroup{},
+		guard:       &sync.Mutex{},
 	}
 
 	s.connWrap = bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
@@ -73,14 +82,9 @@ func (s *TcpSession) ID() int64 {
 }
 
 func (s *TcpSession) Start() {
-	s.guard.Lock()
-	if s.started {
-		s.guard.Unlock()
+	if !atomic.CompareAndSwapInt64(&s.status, ready, start) {
 		return
 	}
-	s.started = true
-	s.guard.Unlock()
-
 	logger.WithField("sessionId", s.id).Debugln("session start")
 
 	//start loop
@@ -94,19 +98,6 @@ func (s *TcpSession) Start() {
 		s.netOp.OnConnected(s)
 	}
 
-	//wait for readLoop and writeLoop finish
-	s.wg.Wait()
-
-	//close socket
-	logger.WithField("sessionId", s.id).Debugln("session closeDone, close raw socket")
-	s.raw.Close()
-
-	//tell sessionManager we are done
-	if s.onCloseDone != nil {
-		logger.WithField("sessionId", s.id).Debugln("session closeDone, notify memcached_server")
-		s.onCloseDone(s)
-	}
-
 }
 
 // 正确关闭tcp连接的做法
@@ -116,13 +107,9 @@ func (s *TcpSession) Start() {
 // sender:shutdown(wr) -> receiver:read(0) -> receiver:send over and close socket ->
 // sender:read(0) -> sender:close socket -> socket正常关闭
 func (s *TcpSession) Stop() {
-	s.guard.Lock()
-	if s.closed {
-		s.guard.Unlock()
+	if !atomic.CompareAndSwapInt64(&s.status, start, stop) {
 		return
 	}
-	s.closed = true
-	s.guard.Unlock()
 
 	logger.WithField("sessionId", s.id).Debugln("session stopping...")
 
@@ -137,8 +124,20 @@ func (s *TcpSession) Stop() {
 
 	//send signal to writeLoop, shutdown wr until nothing more to send
 	logger.WithField("sessionId", s.id).Debugln("close WriteLoop...")
-	//s.sendCh <- nil
 	s.sendQue.Add(nil)
+
+	//wait for readLoop and writeLoop finish
+	s.wg.Wait()
+
+	//close socket
+	logger.WithField("sessionId", s.id).Debugln("session closeDone, close raw socket")
+	s.raw.Close()
+
+	//tell sessionManager we are done
+	if s.onCloseDone != nil {
+		logger.WithField("sessionId", s.id).Debugln("session closeDone, notify memcached_server")
+		s.onCloseDone(s)
+	}
 }
 
 func (s *TcpSession) readLoop() {
@@ -186,10 +185,6 @@ func (s *TcpSession) readLoop() {
 			panic(err)
 		}
 
-		logger.WithFields(logrus.Fields{
-			"sessionId": s.id,
-		}).Debugln("receive message from socket")
-
 		s.netOp.PostEvent(&iface.MessageEvent{EventSes: s, Msg: msg})
 	}
 }
@@ -222,7 +217,7 @@ func (s *TcpSession) writeLoop() {
 
 	for {
 		msgs = msgs[0:0]
-		s.sendQue.Pick(&msgs, s.closeCh)
+		s.sendQue.PickWithSignal(s.closeCh, &msgs)
 
 		for _, msg := range msgs {
 
@@ -231,10 +226,6 @@ func (s *TcpSession) writeLoop() {
 				s.connWrap.Flush()
 				return
 			}
-
-			logger.WithFields(logrus.Fields{
-				"sessionId": s.id,
-			}).Debugln("send message to socket")
 
 			err = s.netOp.WriteMessage(s.connWrap, msg)
 			if err != nil {
@@ -249,29 +240,6 @@ func (s *TcpSession) writeLoop() {
 		}
 	}
 
-	//for msg := range s.sendCh {
-	//	if msg == nil {
-	//		break
-	//	}
-	//
-	//	err = s.netOp.WriteMessage(s.connWrap, msg)
-	//	s.connWrap.Flush()
-	//	if err != nil {
-	//		panic(err)
-	//	}
-	//
-	//	logger.WithFields(logrus.Fields{
-	//		"sessionId": s.id,
-	//	}).Debugln("send message to socket")
-	//}
-}
-
-func (s *TcpSession) LoadCtx(k interface{}) (v interface{}, ok bool) {
-	return s.ctx.Load(k)
-}
-
-func (s *TcpSession) StoreCtx(k, v interface{}) {
-	s.ctx.Store(k, v)
 }
 
 func (s *TcpSession) Send(msg interface{}) {
@@ -283,18 +251,14 @@ func (s *TcpSession) Send(msg interface{}) {
 	}
 
 	s.sendQue.Add(msg)
+}
 
-	//select {
-	//case s.sendCh <- msg:
-	//	return
-	//case <-s.closeCh:
-	//	return
-	//default:
-	//	logger.Debugln("session sendQueue size limit\n")
-	//}
-	//
-	//s.sendCh <- msg
+func (s *TcpSession) LoadCtx(k interface{}) (v interface{}, ok bool) {
+	return s.ctx.Load(k)
+}
 
+func (s *TcpSession) StoreCtx(k, v interface{}) {
+	s.ctx.Store(k, v)
 }
 
 func (s *TcpSession) RunAt(runAt time.Time, cb iface.TimeOutCB) (timerId int64) {

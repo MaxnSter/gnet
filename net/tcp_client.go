@@ -121,10 +121,10 @@ func (client *TcpClient) Run() {
 	logger.Infoln("session closed")
 
 	//close worker pool wait close Done
-	<-client.netOp.Worker.Stop()
+	client.netOp.Worker.Stop()
 
 	//close timer and wait for close Done
-	<-client.netOp.Timer.Stop()
+	client.netOp.Timer.Stop()
 
 	logger.Infoln("client closed, exit...")
 }

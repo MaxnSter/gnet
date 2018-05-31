@@ -82,9 +82,13 @@ func (loop *EventQueue) loopWithHook(hooker func()) {
 	}
 }
 
-func (loop *EventQueue) Stop() (done <-chan struct{}) {
+func (loop *EventQueue) StopAsync() (done <-chan struct{}) {
 	loop.queue <- nil
 	return loop.closeDone
+}
+
+func (loop *EventQueue) Stop() () {
+	<-loop.StopAsync()
 }
 
 func (loop *EventQueue) Put(cb func()) error {

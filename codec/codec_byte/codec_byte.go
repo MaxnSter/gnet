@@ -22,12 +22,16 @@ type coderByte struct{}
 
 // Encode returns raw slice of bytes
 func (coder *coderByte) Encode(v interface{}) (data []byte, err error) {
-	if data, ok := v.([]byte); ok {
-		return data, nil
+	if v, ok := v.([]byte); ok {
+		data = make([]byte, len(v))
+		copy(data, v)
+		return
 	}
 
-	if data, ok := v.(*[]byte); ok {
-		return *data, nil
+	if v, ok := v.(*[]byte); ok {
+		data = make([]byte, len(*v))
+		copy(data, *v)
+		return
 	}
 
 	return nil, fmt.Errorf("%T is not a []byte", v)

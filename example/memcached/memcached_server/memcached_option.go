@@ -57,7 +57,6 @@ func (c *cmdSet) CmdName() string {
 }
 
 func (c *cmdSet) Operate(fullCmd string, mc mcDataMap, out *bytes.Buffer) (err error) {
-	fullCmd = strings.Replace(fullCmd, "\r\n", "", -1)
 	subCmds := strings.Split(fullCmd, " ")
 	if len(subCmds) < 5 {
 		return errors.New("invalid command")

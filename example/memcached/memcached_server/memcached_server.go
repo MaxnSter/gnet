@@ -3,6 +3,7 @@ package memcached_server
 import (
 	"bytes"
 	"strings"
+	"sync"
 
 	"github.com/MaxnSter/gnet"
 	"github.com/MaxnSter/gnet/iface"
@@ -51,17 +52,26 @@ func NewMemcachedServer() *memcachedServer {
 	}
 }
 
+var bufferPool = sync.Pool{
+	New: func() interface{} {
+		return new(bytes.Buffer)
+	},
+}
+
 // onEvent是client消息处理函数
 func (ms *memcachedServer) onEvent(ev iface.Event) {
 	msg := ev.Message().([]byte)
 	idx := bytes.IndexByte(msg, ' ')
-	buf := new(bytes.Buffer)
+	buf := bufferPool.Get().(*bytes.Buffer)
+	defer bufferPool.Put(buf)
 	buf.Reset()
 
 	//错误的命令格式
 	if idx == -1 {
 		buf.WriteString("ERROR END")
-		ev.Session().Send(buf.Bytes())
+		msgSnd:= make([]byte, buf.Len())
+		copy(msg, buf.Bytes())
+		ev.Session().Send(msgSnd)
 		return
 	}
 
@@ -87,7 +97,9 @@ func (ms *memcachedServer) onEvent(ev iface.Event) {
 	}
 
 	buf.WriteString(" END")
-	ev.Session().Send(buf.Bytes())
+	msgSnd := make([]byte, buf.Len())
+	copy(msg, buf.Bytes())
+	ev.Session().Send(msgSnd)
 }
 
 // StartAndRun根据传入的endpoint启动memcachedServer

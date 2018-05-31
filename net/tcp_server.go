@@ -48,15 +48,15 @@ func (server *TcpServer) Start() error {
 	server.guard.Lock()
 	if server.started {
 		server.guard.Unlock()
-		return errors.New("memcached_server already started")
+		return errors.New("server already started")
 	}
 	server.started = true
 	server.guard.Unlock()
 
-	logger.WithField("addr", server.addr).Infoln("memcached_server start listening")
+	logger.WithField("addr", server.addr).Infoln("server start listening")
 	l, err := net.Listen("tcp", server.addr)
 	if err != nil {
-		logger.WithFields(logrus.Fields{"addr": server.addr, "error": err}).Errorln("memcached_server listen error")
+		logger.WithFields(logrus.Fields{"addr": server.addr, "error": err}).Errorln("server listen error")
 
 		return err
 	}
@@ -76,7 +76,7 @@ func (server *TcpServer) accept() {
 		logger.Infoln("acceptor stopped")
 	}()
 
-	logger.Infoln("memcached_server start running finished, waiting for connect...")
+	logger.Infoln("server start running finished, waiting for connect...")
 
 	delayTime := 5 * time.Microsecond
 	maxDelayTime := time.Second
@@ -134,7 +134,7 @@ func (server *TcpServer) Run() {
 	server.guard.Lock()
 	if !server.started {
 		server.guard.Unlock()
-		panic("memcached_server not started!")
+		panic("server not started!")
 	}
 	server.guard.Unlock()
 
@@ -168,8 +168,8 @@ func (server *TcpServer) Run() {
 	server.wg.Wait()
 	logger.Infoln("all session closed")
 
-	<-server.Options.Worker.Stop()
-	<-server.Options.Timer.Stop()
+	server.Options.Worker.Stop()
+	server.Options.Timer.Stop()
 
 	if server.Options.OnServerClosed != nil {
 		logger.Infoln("memcached_server closed, callback to user")

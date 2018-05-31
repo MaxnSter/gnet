@@ -98,7 +98,7 @@ func (p *poolNoRace) clean(scratch *[]*goChan) {
 	}
 }
 
-func (p *poolNoRace) Stop() (done <-chan struct{}) {
+func (p *poolNoRace) StopAsync() (done <-chan struct{}) {
 
 	select {
 	case <-p.stopCh:
@@ -136,6 +136,10 @@ func (p *poolNoRace) Stop() (done <-chan struct{}) {
 	}()
 
 	return p.closeDone
+}
+
+func (p *poolNoRace) Stop() {
+	<-p.StopAsync()
 }
 
 func (p *poolNoRace) Put(session iface.NetSession, cb func()) {

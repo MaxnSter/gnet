@@ -16,7 +16,7 @@ import (
 */
 
 //堆节点
-type timerNode struct {
+type timerEntry struct {
 	expire   time.Time     //到期时间
 	interval time.Duration //重复间隔
 	timerId  int64         //返回给用户的id
@@ -26,10 +26,10 @@ type timerNode struct {
 	session iface.NetSession //该user timer对应的调用者
 	cb      iface.TimeOutCB  // callback
 
-	next *timerNode
+	next *timerEntry
 }
 
-type timerHeap []*timerNode
+type timerHeap []*timerEntry
 
 //实现标准库heap接口
 func (heap timerHeap) Len() int           { return len(heap) }
@@ -41,7 +41,7 @@ func (heap timerHeap) Swap(i, j int) {
 
 func (heap *timerHeap) Push(x interface{}) {
 	n := len(*heap)
-	tn := x.(*timerNode)
+	tn := x.(*timerEntry)
 	tn.index = n
 	*heap = append(*heap, tn)
 }
@@ -76,6 +76,18 @@ var (
 	_ iface.Timer = (*timerManager)(nil)
 )
 
+type entryPool struct {
+	p sync.Pool
+}
+
+func (ep *entryPool) get() *timerEntry {
+	return ep.p.Get().(*timerEntry)
+}
+
+func (ep *entryPool) put(t *timerEntry) {
+	ep.p.Put(t)
+}
+
 type timerManager struct {
 	workers     iface.WorkerPool //负责处理callback的worker pool
 	timers      timerHeap        //管理所有user timer的最小堆
@@ -84,8 +96,7 @@ type timerManager struct {
 	closeCh     chan struct{}
 	closeDoneCh chan struct{}
 
-	guard        *sync.Mutex
-	freeTimeNode timerNode
+	pool sync.Pool
 }
 
 //指定一个worker pool,用于负责调用caller传入的callback,返回timerManager
@@ -93,38 +104,28 @@ type timerManager struct {
 //对callback的处理,必须是非阻塞的.因此,把callback的调用,交给worker pool来做
 //timerManager只负责往pool里填东西
 func NewTimerManager(workers iface.WorkerPool) *timerManager {
-	return &timerManager{
+	tm := &timerManager{
 		workers:     workers,
-		timers:      make([]*timerNode, 0),
+		timers:      make([]*timerEntry, 0),
 		pauseCh:     make(chan struct{}),
 		resumeCh:    make(chan struct{}),
 		closeCh:     make(chan struct{}),
 		closeDoneCh: make(chan struct{}),
-		guard:       &sync.Mutex{},
-	}
-}
-
-func (tm *timerManager) put(t *timerNode) {
-	tm.guard.Lock()
-	defer tm.guard.Unlock()
-
-	t.next = tm.freeTimeNode.next
-	tm.freeTimeNode.next = t
-}
-
-func (tm *timerManager) get() *timerNode {
-	tm.guard.Lock()
-	defer tm.guard.Unlock()
-
-	if tm.freeTimeNode.next == nil {
-		return new(timerNode)
 	}
 
-	t := tm.freeTimeNode.next
-	tm.freeTimeNode.next = t.next
-	t.next = nil
+	tm.pool.New = func() interface{} {
+		return new(timerEntry)
+	}
 
-	return t
+	return tm
+}
+
+func (tm *timerManager) put(t *timerEntry) {
+	tm.pool.Put(t)
+}
+
+func (tm *timerManager) get() *timerEntry {
+	return tm.pool.Get().(*timerEntry)
 }
 
 //开启定时器功能
@@ -135,12 +136,19 @@ func (tm *timerManager) Start() {
 	go tm.run()
 }
 
-//关闭定时器,当定时器内部完全关闭时 done可读
-func (tm *timerManager) Stop() (done <-chan struct{}) {
+func (tm *timerManager) StopAsync() (done <-chan struct{}) {
 	tm.closeCh <- struct{}{}
 
 	logger.Infoln("timer stopping...")
 	return tm.closeDoneCh
+}
+
+//关闭定时器,当定时器内部完全关闭时 done可读
+func (tm *timerManager) Stop() {
+	tm.closeCh <- struct{}{}
+
+	logger.Infoln("timer stopping...")
+	<-tm.closeDoneCh
 }
 
 //添加一个定时
@@ -174,7 +182,7 @@ func (tm *timerManager) CancelTimer(id int64) {
 	t := heap.Remove(&tm.timers, idx)
 	tm.resume()
 
-	tm.put(t.(*timerNode))
+	tm.put(t.(*timerEntry))
 }
 
 func (tm *timerManager) pause() {
@@ -189,7 +197,7 @@ func (tm *timerManager) run() {
 	var (
 		timeout      time.Duration
 		loopTimer    = newSafeTimer(UNTOUCHED)
-		expiredTNode []*timerNode
+		expiredTNode []*timerEntry
 	)
 
 	defer func() {
@@ -222,7 +230,7 @@ func (tm *timerManager) run() {
 }
 
 //处理expired user timer的callback, 该func保证非阻塞执行
-func (tm *timerManager) handleExpired(tNode *timerNode, t time.Time) {
+func (tm *timerManager) handleExpired(tNode *timerEntry, t time.Time) {
 	f := func() {
 		tNode.cb(t, tNode.session)
 	}
@@ -234,9 +242,9 @@ func (tm *timerManager) handleExpired(tNode *timerNode, t time.Time) {
 }
 
 //有一个或多个user timer 到期
-func (tm *timerManager) expired(expiredTNode *[]*timerNode) {
+func (tm *timerManager) expired(expiredTNode *[]*timerEntry) {
 	for len(tm.timers) > 0 {
-		t := heap.Pop(&tm.timers).(*timerNode)
+		t := heap.Pop(&tm.timers).(*timerEntry)
 		if time.Since(t.expire) > 0 {
 			*expiredTNode = append(*expiredTNode, t)
 			tm.handleExpired(t, time.Now())
@@ -254,7 +262,7 @@ func (tm *timerManager) expired(expiredTNode *[]*timerNode) {
 }
 
 //对所有interval不为0的user timer,调整expire time,重新入堆
-func (tm *timerManager) update(tNodes []*timerNode) {
+func (tm *timerManager) update(tNodes []*timerEntry) {
 
 	if len(tNodes) == 0 {
 		return

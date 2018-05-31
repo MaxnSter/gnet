@@ -159,7 +159,7 @@ func TestPoolRaceOther_Stop(t *testing.T) {
 	select {
 	case <-time.After(10 * time.Second):
 		assert.Fail(t, "queue1 not stopped")
-	case <-q.Stop():
+	case <-q.StopAsync():
 	}
 }
 

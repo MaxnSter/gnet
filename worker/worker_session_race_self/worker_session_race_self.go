@@ -48,13 +48,17 @@ func (p *poolRaceSelf) Start() {
 	}
 }
 
-func (p *poolRaceSelf) Stop() (done <-chan struct{}) {
+func (p *poolRaceSelf) Stop() {
+	<-p.StopAsync()
+}
+
+func (p *poolRaceSelf) StopAsync() (done <-chan struct{}) {
 	chans := make([]<-chan struct{}, 0, workerNum)
 
 	logger.WithField("name", p.TypeName()).Infoln("pool stopping...")
 
 	for _, w := range p.workers {
-		chans = append(chans, w.Stop())
+		chans = append(chans, w.StopAsync())
 	}
 
 	go func() {
