@@ -1,11 +1,12 @@
 language:
  - go
 
-go:
- - 1.10
+go_import_path:
+ - github.com/golang/groupcache
 
-install:
- - go get -u github.com/Maxnster/gnet
+go:
+ - 1.9.x
+ - 1.10.x
 
 
 script:
