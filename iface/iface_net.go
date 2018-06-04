@@ -17,6 +17,6 @@ type SessionManager interface {
 type Server interface {
 	SessionManager
 
-	Start(userCb UserEventCB)
+	Start(userCb OnMessage)
 	Stop()
 }

@@ -18,11 +18,12 @@ func (msg *MessageEvent) Message() interface{} {
 	return msg.Msg
 }
 
-type UserEventCB interface {
-	EventCB(ev Event)
+type OnMessage interface {
+	OnMessageCB(ev Event)
 }
-type UserEventCBFunc func(ev Event)
 
-func (f UserEventCBFunc) EventCB(ev Event) {
+type OnMessageFunc func(ev Event)
+
+func (f OnMessageFunc) OnMessageCB(ev Event) {
 	f(ev)
 }

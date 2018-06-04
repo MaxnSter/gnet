@@ -10,7 +10,7 @@ type NetOptions struct {
 	Coder  iface.Coder
 	Packer iface.Packer
 	Worker iface.WorkerPool
-	CB     iface.UserEventCB
+	CB     iface.OnMessage
 	Timer  iface.Timer
 
 	OnConnected    OnConnectedFunc
@@ -36,6 +36,6 @@ func (op *NetOptions) WriteMessage(writer io.Writer, msg interface{}) error {
 
 func (op *NetOptions) PostEvent(ev iface.Event) {
 	op.Worker.Put(ev.Session(), func() {
-		op.CB.EventCB(ev)
+		op.CB.OnMessageCB(ev)
 	})
 }

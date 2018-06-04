@@ -19,26 +19,30 @@ func getRoundTrip(tClient int64, tServer int64) {
 	fmt.Printf("round trip : %d, clock err : %d\n", now-tClient, diff)
 }
 
-func main() {
-	client := gnet.NewClient("aliyun:2007",
-		func(ev iface.Event) {
-			switch msg := ev.Message().(type) {
-			case *round_trip.RoundTripProto:
-				getRoundTrip(msg.T1, msg.T2)
+func onMessage(ev iface.Event) {
 
-				time.AfterFunc(time.Second, func() {
+	switch msg := ev.Message().(type) {
+	case *round_trip.RoundTripProto:
+		getRoundTrip(msg.T1, msg.T2)
 
-					msg := &round_trip.RoundTripProto{Id: example.ProtoRoundTrip, T1: time.Now().UnixNano(), T2: 0}
+		time.AfterFunc(time.Second, func() {
 
-					ev.Session().Send(msg)
-				})
-			}
-		},
-		gnet.WithConnectedCB(func(s *net.TcpSession) {
 			msg := &round_trip.RoundTripProto{Id: example.ProtoRoundTrip, T1: time.Now().UnixNano(), T2: 0}
 
-			s.Send(msg)
-		}))
+			ev.Session().Send(msg)
+		})
+	}
+}
+
+func main() {
+
+	callback := gnet.NewCallBackOption(gnet.WithOnConeectCB(func(session *net.TcpSession) {
+		msg := &round_trip.RoundTripProto{Id: example.ProtoRoundTrip, T1: time.Now().UnixNano(), T2: 0}
+		session.Send(msg)
+	}))
+
+	client := gnet.NewClient("127.0.0.1:2007",
+		callback, gnet.NewGnetOption(), onMessage)
 
 	client.StartAndRun()
 }

@@ -9,13 +9,14 @@ import (
 )
 
 func main() {
-	server := gnet.NewServer("0.0.0.0:2007", "", func(ev iface.Event) {
-		switch msg := ev.Message().(type) {
-		case *round_trip.RoundTripProto:
-			msg.T2 = time.Now().UnixNano()
-			ev.Session().Send(msg)
-		}
-	})
+	server := gnet.NewServer("0.0.0.0:2007", gnet.NewCallBackOption(), gnet.NewGnetOption(),
+		func(ev iface.Event) {
+			switch msg := ev.Message().(type) {
+			case *round_trip.RoundTripProto:
+				msg.T2 = time.Now().UnixNano()
+				ev.Session().Send(msg)
+			}
+		})
 
 	server.StartAndRun()
 }

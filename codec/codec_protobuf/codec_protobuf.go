@@ -9,7 +9,7 @@ import (
 
 const (
 	// the name of coderProtobuf
-	CoderProtoTypeName = "protoBuf"
+	CoderProtoTypeName = "protobuf"
 )
 
 var (
