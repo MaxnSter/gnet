@@ -2,13 +2,12 @@ language:
  - go
 
 go:
- - 1.9
+ - 1.10
 
 install:
- - go get -u github.com/golang/dep/cmd/dep
+ - go get -u github.com/Maxnster/gnet
 
 
 script:
- - dep ensure
  - cd $GOPATH/src/github.com/MaxnSter/gnet/ && go test ./...
 

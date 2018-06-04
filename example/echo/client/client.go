@@ -1,13 +1,9 @@
 package main
 
 import (
-	"bufio"
-	"os"
-
 	"github.com/MaxnSter/gnet"
 	"github.com/MaxnSter/gnet/iface"
 	"github.com/MaxnSter/gnet/logger"
-	"github.com/MaxnSter/gnet/net"
 	"github.com/MaxnSter/gnet/util"
 
 	_ "github.com/MaxnSter/gnet/codec/codec_byte"

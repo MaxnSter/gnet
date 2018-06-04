@@ -59,7 +59,7 @@ func TestEventQueue_Stop(t *testing.T) {
 	select {
 	case <-time.After(10 * time.Second):
 		assert.Fail(t, "queue not stopped")
-	case <-q.Stop():
+	case <-q.StopAsync():
 
 	}
 }

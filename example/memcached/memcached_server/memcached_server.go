@@ -69,7 +69,7 @@ func (ms *memcachedServer) onEvent(ev iface.Event) {
 	//错误的命令格式
 	if idx == -1 {
 		buf.WriteString("ERROR END")
-		msgSnd:= make([]byte, buf.Len())
+		msgSnd := make([]byte, buf.Len())
 		copy(msg, buf.Bytes())
 		ev.Session().Send(msgSnd)
 		return
@@ -104,10 +104,11 @@ func (ms *memcachedServer) onEvent(ev iface.Event) {
 
 // StartAndRun根据传入的endpoint启动memcachedServer
 func (ms *memcachedServer) StartAndRun(addr string) {
-	ms.netServer = gnet.NewServer(addr, "memcached", ms.onEvent,
-		gnet.WithCoder("byte"),
-		gnet.WithPacker("text"),
-		gnet.WithWorkerPool("poolRaceOther"))
+	ms.netServer = gnet.NewServer(addr, gnet.NewCallBackOption(), &gnet.GnetOption{
+		Packer:     "text",
+		Coder:      "byte",
+		WorkerPool: "poolRaceOther",
+	}, ms.onEvent)
 
 	ms.netServer.StartAndRun()
 }

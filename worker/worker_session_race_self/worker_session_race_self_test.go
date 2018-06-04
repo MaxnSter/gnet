@@ -144,7 +144,7 @@ func TestPoolRaceSelf_Stop(t *testing.T) {
 	select {
 	case <-time.After(5 * time.Second):
 		assert.Fail(t, "queue not stopped")
-	case <-q.Stop():
+	case <-q.StopAsync():
 	}
 }
 

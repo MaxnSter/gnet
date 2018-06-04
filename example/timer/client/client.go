@@ -11,7 +11,7 @@ import (
 
 func main() {
 
-	gnetOption := gnet.NewGnetOption(gnet.WithCoder("msgspack"))
+	gnetOption := gnet.NewGnetOption(gnet.WithCoder("msgpack"))
 	client := gnet.NewClient("localhost:2007", nil, gnetOption, func(ev iface.Event) {
 		switch msg := ev.Message().(type) {
 		case *timer.TimerProto:
