@@ -34,7 +34,17 @@ func (coder *coderByte) Encode(v interface{}) (data []byte, err error) {
 		return
 	}
 
-	return nil, fmt.Errorf("%T is not a []byte", v)
+	if v, ok := v.(string); ok {
+		data = []byte(v)
+		return
+	}
+
+	if v, ok := v.(*string); ok {
+		data = []byte(*v)
+		return
+	}
+
+	return nil, fmt.Errorf("%T is not a []byte or string", v)
 }
 
 // Decode return raw slice of bytes

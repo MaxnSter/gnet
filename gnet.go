@@ -18,13 +18,7 @@ func NewServer(addr string,
 	gnetOption *GnetOption,
 	onMessage iface.OnMessageFunc) *net.TcpServer {
 
-	netOp := &net.NetOptions{
-		Coder:  codec.MustGetCoder(gnetOption.Coder),
-		Worker: worker.MustGetWorkerPool(gnetOption.WorkerPool),
-		Packer: pack.MustGetPacker(gnetOption.Packer),
-		CB:     onMessage,
-	}
-	netOp.Timer = timer.NewTimerManager(netOp.Worker)
+	netOp := newNetOption(cbOption, gnetOption, onMessage)
 	return net.NewTcpServer(addr, "", netOp)
 }
 
@@ -33,18 +27,29 @@ func NewClient(addr string,
 	gnetOption *GnetOption,
 	onMessage iface.OnMessageFunc) *net.TcpClient {
 
+	netOp := newNetOption(cbOption, gnetOption, onMessage)
+	return net.NewTcpClient(addr, netOp)
+}
+
+func newNetOption(cbOption *CallBackOption, gnetOption *GnetOption, onMessage iface.OnMessage) *net.NetOptions {
+
 	netOp := &net.NetOptions{
 		Coder:  codec.MustGetCoder(gnetOption.Coder),
 		Worker: worker.MustGetWorkerPool(gnetOption.WorkerPool),
 		Packer: pack.MustGetPacker(gnetOption.Packer),
 		CB:     onMessage,
+
+		OnConnected:    cbOption.OnConnect,
+		OnSessionClose: cbOption.OnSessionClose,
+		OnServerClosed: cbOption.OnServerClosed,
 	}
 	netOp.Timer = timer.NewTimerManager(netOp.Worker)
-	return net.NewTcpClient(addr, netOp)
+
+	return netOp
 }
 
-var defaultCbOption = CallBackOption{}
-var defaultGnetOption = GnetOption{Packer: "tlv", Coder: "msgpack", WorkerPool: "poolRaceSelf"}
+var defaultCbOption = &CallBackOption{}
+var defaultGnetOption = &GnetOption{Packer: "tlv", Coder: "msgpack", WorkerPool: "poolRaceSelf"}
 
 type CallBackOption struct {
 	OnConnect      net.OnConnectedFunc
@@ -71,7 +76,7 @@ func WithOnServerClosed(onClosed net.OnServerClosedFunc) func(*CallBackOption) {
 }
 
 func NewCallBackOption(options ...func(*CallBackOption)) *CallBackOption {
-	o := defaultCbOption
+	o := *defaultCbOption
 	for _, option := range options {
 		option(&o)
 	}
@@ -86,7 +91,7 @@ type GnetOption struct {
 }
 
 func NewGnetOption(options ...func(*GnetOption)) *GnetOption {
-	o := defaultGnetOption
+	o := *defaultGnetOption
 	for _, option := range options {
 		option(&o)
 	}
