@@ -14,7 +14,7 @@ type NetOptions struct {
 	Timer  iface.Timer
 
 	OnConnected    OnConnectedFunc
-	OnClose        OnSessionCloseFunc
+	OnSessionClose OnSessionCloseFunc
 	OnServerClosed OnServerClosedFunc
 
 	//TODO more, such as socket Options...

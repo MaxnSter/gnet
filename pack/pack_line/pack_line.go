@@ -1,4 +1,4 @@
-package pack_text
+package pack_line
 
 import (
 	"bufio"
@@ -12,25 +12,25 @@ import (
 )
 
 const (
-	// the name of textPacker
-	TextPackerName = "text"
+	// the name of linePacker
+	LinePackerName = "line"
 )
 
 var (
-	_ iface.Packer = (*textPacker)(nil)
+	_ iface.Packer = (*linePacker)(nil)
 
 	scannerEOF = errors.New("scanner eof")
 )
 
-// textPacker is packer for text protocol: line end with '\r\n'
+// linePacker is packer for text protocol: line end with '\r\n'
 // NOTE: Must use with byte coder
-type textPacker struct {
+type linePacker struct {
 }
 
 // Unpack read every single line end with \r\n from socket
-func (p *textPacker) Unpack(reader io.Reader, c iface.Coder) (msg interface{}, err error) {
+func (p *linePacker) Unpack(reader io.Reader, c iface.Coder) (msg interface{}, err error) {
 
-	//FIXME
+	//TODO
 	rd, _ := reader.(*bufio.ReadWriter)
 	buf, err := rd.ReadBytes('\n')
 
@@ -57,7 +57,7 @@ func (p *textPacker) Unpack(reader io.Reader, c iface.Coder) (msg interface{}, e
 }
 
 // Packer encode msg and end with '\r\n', then send to socket
-func (p *textPacker) Pack(writer io.Writer, c iface.Coder, msg interface{}) error {
+func (p *linePacker) Pack(writer io.Writer, c iface.Coder, msg interface{}) error {
 	b, err := c.Encode(msg)
 	if err != nil {
 		return err
@@ -72,13 +72,13 @@ func (p *textPacker) Pack(writer io.Writer, c iface.Coder, msg interface{}) erro
 	return nil
 }
 
-// name of textPacker
-func (p *textPacker) TypeName() string {
-	return TextPackerName
+// name of linePacker
+func (p *linePacker) TypeName() string {
+	return LinePackerName
 }
 
 // split is func for scanner, check line is ends with \r\n
-func (p *textPacker) split(data []byte, atEOF bool) (advance int, token []byte, err error) {
+func (p *linePacker) split(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	if atEOF && len(data) == 0 {
 		return 0, nil, scannerEOF
 	}
@@ -102,5 +102,5 @@ func (p *textPacker) split(data []byte, atEOF bool) (advance int, token []byte, 
 
 //register packer
 func init() {
-	pack.RegisterPacker(TextPackerName, &textPacker{})
+	pack.RegisterPacker(LinePackerName, &linePacker{})
 }

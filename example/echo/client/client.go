@@ -7,7 +7,7 @@ import (
 	"github.com/MaxnSter/gnet/util"
 
 	_ "github.com/MaxnSter/gnet/codec/codec_byte"
-	_ "github.com/MaxnSter/gnet/pack/pack_text"
+	_ "github.com/MaxnSter/gnet/pack/pack_line"
 )
 
 func main() {

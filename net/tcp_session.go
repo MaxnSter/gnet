@@ -111,33 +111,36 @@ func (s *TcpSession) Stop() {
 		return
 	}
 
-	logger.WithField("sessionId", s.id).Debugln("session stopping...")
+	go func() {
 
-	if s.netOp.OnClose != nil {
-		logger.WithField("sessionId", s.id).Debugln("session onClose, callback to user")
-		s.netOp.OnClose(s)
-	}
+		logger.WithField("sessionId", s.id).Debugln("session stopping...")
 
-	//close readLoop
-	logger.WithField("sessionId", s.id).Debugln("close readLoop...")
-	close(s.closeCh)
+		if s.netOp.OnSessionClose != nil {
+			logger.WithField("sessionId", s.id).Debugln("session onClose, callback to user")
+			s.netOp.OnSessionClose(s)
+		}
 
-	//send signal to writeLoop, shutdown wr until nothing more to send
-	logger.WithField("sessionId", s.id).Debugln("close WriteLoop...")
-	s.sendQue.Add(nil)
+		//close readLoop
+		logger.WithField("sessionId", s.id).Debugln("close readLoop...")
+		close(s.closeCh)
 
-	//wait for readLoop and writeLoop finish
-	s.wg.Wait()
+		//send signal to writeLoop, shutdown wr until nothing more to send
+		logger.WithField("sessionId", s.id).Debugln("close WriteLoop...")
+		s.sendQue.Add(nil)
 
-	//close socket
-	logger.WithField("sessionId", s.id).Debugln("session closeDone, close raw socket")
-	s.raw.Close()
+		//wait for readLoop and writeLoop finish
+		s.wg.Wait()
 
-	//tell sessionManager we are done
-	if s.onCloseDone != nil {
-		logger.WithField("sessionId", s.id).Debugln("session closeDone, notify memcached_server")
-		s.onCloseDone(s)
-	}
+		//close socket
+		logger.WithField("sessionId", s.id).Debugln("session closeDone, close raw socket")
+		s.raw.Close()
+
+		//tell sessionManager we are done
+		if s.onCloseDone != nil {
+			logger.WithField("sessionId", s.id).Debugln("session closeDone, notify server")
+			s.onCloseDone(s)
+		}
+	}()
 }
 
 func (s *TcpSession) readLoop() {
@@ -166,8 +169,8 @@ func (s *TcpSession) readLoop() {
 		msg, err := s.netOp.ReadMessage(s.connWrap)
 		if err != nil {
 
+			//remote close socket
 			if err == io.EOF {
-				//client close socket
 				logger.WithField("sessionId", s.id).Debugln("read eof from socket")
 				s.Stop()
 				return

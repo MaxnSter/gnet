@@ -144,7 +144,7 @@ func (server *TcpServer) Run() {
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGKILL, syscall.SIGTERM)
 	signal.Ignore(syscall.SIGPIPE)
 
-	logger.Infoln("memcached_server start running...")
+	logger.Infoln("server start running...")
 
 	//开启worker pool
 	server.Options.Worker.Start()
@@ -172,12 +172,12 @@ func (server *TcpServer) Run() {
 	server.Options.Timer.Stop()
 
 	if server.Options.OnServerClosed != nil {
-		logger.Infoln("memcached_server closed, callback to user")
+		logger.Infoln("server closed, callback to user")
 
 		server.Options.OnServerClosed()
 	}
 
-	logger.Infoln("memcached_server closed, exit...")
+	logger.Infoln("server closed, exit...")
 }
 
 func (server *TcpServer) Stop() {
@@ -190,7 +190,7 @@ func (server *TcpServer) Stop() {
 	server.stopped = true
 	server.guard.Unlock()
 
-	logger.Infoln("memcached_server start closing...")
+	logger.Infoln("server start closing...")
 
 	//立即停止接收新连接
 	logger.Infoln("closing listener...")
