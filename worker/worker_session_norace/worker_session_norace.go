@@ -7,6 +7,7 @@ import (
 	"github.com/MaxnSter/gnet/iface"
 	"github.com/MaxnSter/gnet/logger"
 	"github.com/MaxnSter/gnet/worker"
+	"github.com/MaxnSter/gnet/worker/internal/basic_event_queue"
 	"github.com/sirupsen/logrus"
 )
 
@@ -37,6 +38,7 @@ type poolNoRace struct {
 	mustStop        bool
 	ready           []*goChan
 	goChanPool      sync.Pool
+	cbWrapper       basic_event_queue.CallBackWrapper
 
 	stopCh    chan struct{}
 	closeDone chan struct{}
@@ -54,6 +56,7 @@ func NewPoolNoRace() iface.WorkerPool {
 		ready:     make([]*goChan, 0),
 		stopCh:    make(chan struct{}),
 		closeDone: make(chan struct{}),
+		cbWrapper: basic_event_queue.SafeCallBack,
 	}
 }
 
@@ -142,7 +145,7 @@ func (p *poolNoRace) Stop() {
 	<-p.StopAsync()
 }
 
-func (p *poolNoRace) Put(session iface.NetSession, cb func()) {
+func (p *poolNoRace) Put(ctx iface.Context, cb func(iface.Context)) {
 
 	select {
 	case <-p.stopCh:
@@ -152,17 +155,17 @@ func (p *poolNoRace) Put(session iface.NetSession, cb func()) {
 	}
 
 	if ch := p.getCh(); ch != nil {
-		ch.ch <- cb
+		ch.ch <- basic_event_queue.Decorate(ctx, cb, p.cbWrapper)
 	} else {
 		logger.WithField("name", p.TypeName()).Warning("pool size limit")
-		cb()
+		cb(ctx)
 	}
 }
 
-func (p *poolNoRace) TryPut(session iface.NetSession, cb func()) bool {
+func (p *poolNoRace) TryPut(ctx iface.Context, cb func(iface.Context)) bool {
 
 	if ch := p.getCh(); ch != nil {
-		ch.ch <- cb
+		ch.ch <- basic_event_queue.Decorate(ctx, cb, p.cbWrapper)
 		return true
 	}
 

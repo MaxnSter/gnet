@@ -2,24 +2,33 @@ package basic_event_queue
 
 import (
 	"errors"
-	"fmt"
 	"runtime/debug"
+
+	"github.com/MaxnSter/gnet/iface"
 )
 
+type CallBackWrapper func(ctx iface.Context, cb func(iface.Context))
+
+func Decorate(usrCtx iface.Context, usrCb func(iface.Context), wrapper CallBackWrapper) func() {
+	return func() {
+		wrapper(usrCtx, usrCb)
+	}
+}
+
 var (
-	safeCallBack = func(cb func()) {
+	SafeCallBack = func(ctx iface.Context, cb func(iface.Context)) {
 		defer func() {
 			if r := recover(); r != nil {
-				fmt.Printf("catch expected error : %s\n", r)
+				// TODO error handing
 				debug.PrintStack()
 			}
 		}()
 
-		cb()
+		cb(ctx)
 	}
 
-	unSafeCallBack = func(cb func()) {
-		cb()
+	UnSafeCallBack = func(ctx iface.Context, cb func(iface.Context)) {
+		cb(ctx)
 	}
 )
 
@@ -29,7 +38,7 @@ type EventQueue struct {
 
 	queueSize      int
 	isSafeCallBack bool
-	cbWrapper      func(cb func())
+	cbWrapper      CallBackWrapper
 }
 
 func NewEventQueue(queueSize int, isSafeCallBack bool) *EventQueue {
@@ -43,9 +52,9 @@ func NewEventQueue(queueSize int, isSafeCallBack bool) *EventQueue {
 
 func (loop *EventQueue) Start() {
 	if loop.isSafeCallBack {
-		loop.cbWrapper = safeCallBack
+		loop.cbWrapper = SafeCallBack
 	} else {
-		loop.cbWrapper = unSafeCallBack
+		loop.cbWrapper = UnSafeCallBack
 	}
 
 	go loop.loop()
@@ -58,23 +67,7 @@ func (loop *EventQueue) loop() {
 			break
 		}
 
-		loop.cbWrapper(cb)
-	}
-
-	if loop.closeDone != nil {
-		close(loop.closeDone)
-	}
-}
-
-func (loop *EventQueue) loopWithHook(hooker func()) {
-
-	for cb := range loop.queue {
-		if cb == nil {
-			break
-		}
-
-		hooker()
-		loop.cbWrapper(cb)
+		cb()
 	}
 
 	if loop.closeDone != nil {
@@ -87,13 +80,14 @@ func (loop *EventQueue) StopAsync() (done <-chan struct{}) {
 	return loop.closeDone
 }
 
-func (loop *EventQueue) Stop() () {
+func (loop *EventQueue) Stop() {
 	<-loop.StopAsync()
 }
 
-func (loop *EventQueue) Put(cb func()) error {
+func (loop *EventQueue) Put(ctx iface.Context, cb func(iface.Context)) error {
+
 	select {
-	case loop.queue <- cb:
+	case loop.queue <- Decorate(ctx, cb, loop.cbWrapper):
 		return nil
 	default:
 		//TODO error
@@ -101,6 +95,6 @@ func (loop *EventQueue) Put(cb func()) error {
 	}
 }
 
-func (loop *EventQueue) MustPut(cb func()) {
-	loop.queue <- cb
+func (loop *EventQueue) MustPut(ctx iface.Context, cb func(iface.Context)) {
+	loop.queue <- Decorate(ctx, cb, loop.cbWrapper)
 }

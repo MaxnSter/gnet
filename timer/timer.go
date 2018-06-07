@@ -22,11 +22,8 @@ type timerEntry struct {
 	timerId  int64         //返回给用户的id
 	index    int           //heap内部维护的index
 
-	//TODO 去掉该字段
-	session iface.NetSession //该user timer对应的调用者
-	cb      iface.TimeOutCB  // callback
-
-	next *timerEntry
+	ctx iface.Context
+	cb  iface.OnTimeOut // callback
 }
 
 type timerHeap []*timerEntry
@@ -152,13 +149,12 @@ func (tm *timerManager) Stop() {
 }
 
 //添加一个定时
-//TODO 接口优化,目前接口太丑陋了
-func (tm *timerManager) AddTimer(expire time.Time, interval time.Duration, s iface.NetSession, cb iface.TimeOutCB) (id int64) {
+func (tm *timerManager) AddTimer(expire time.Time, interval time.Duration, ctx iface.Context, cb iface.OnTimeOut) (id int64) {
 	t := tm.get()
 
 	t.expire = expire
 	t.interval = interval
-	t.session = s
+	t.ctx = ctx
 	t.cb = cb
 	t.timerId = util.GetUUID()
 	t.index = -1
@@ -230,14 +226,14 @@ func (tm *timerManager) run() {
 }
 
 //处理expired user timer的callback, 该func保证非阻塞执行
-func (tm *timerManager) handleExpired(tNode *timerEntry, t time.Time) {
-	f := func() {
-		tNode.cb(t, tNode.session)
+func (tm *timerManager) handleExpired(entry *timerEntry, t time.Time) {
+	f := func(ctx iface.Context) {
+		entry.cb(t, ctx)
 	}
 
-	if !tm.workers.TryPut(tNode.session, f) {
+	if !tm.workers.TryPut(entry.ctx, f) {
 		//must be async
-		go tm.workers.Put(tNode.session, f)
+		go tm.workers.Put(entry.ctx, f)
 	}
 }
 

@@ -35,7 +35,7 @@ func (op *NetOptions) WriteMessage(writer io.Writer, msg interface{}) error {
 }
 
 func (op *NetOptions) PostEvent(ev iface.Event) {
-	op.Worker.Put(ev.Session(), func() {
+	op.Worker.Put(ev.Session(), func(_ iface.Context) {
 		op.CB.OnMessageCB(ev)
 	})
 }

@@ -1,7 +1,12 @@
 package iface
 
-type NetSession interface {
+type Identifier interface {
 	ID() int64
+}
+
+type NetSession interface {
+	Identifier
+
 	Send(message interface{})
 	Stop()
 

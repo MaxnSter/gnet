@@ -1,5 +1,8 @@
 package iface
 
+type Context interface {
+}
+
 type Event interface {
 	Session() NetSession
 	Message() interface{}

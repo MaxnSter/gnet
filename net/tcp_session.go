@@ -264,15 +264,15 @@ func (s *TcpSession) StoreCtx(k, v interface{}) {
 	s.ctx.Store(k, v)
 }
 
-func (s *TcpSession) RunAt(runAt time.Time, cb iface.TimeOutCB) (timerId int64) {
+func (s *TcpSession) RunAt(runAt time.Time, cb iface.OnTimeOut) (timerId int64) {
 	return s.netOp.Timer.AddTimer(runAt, 0, s, cb)
 }
 
-func (s *TcpSession) RunAfter(start time.Time, after time.Duration, cb iface.TimeOutCB) (timerId int64) {
+func (s *TcpSession) RunAfter(start time.Time, after time.Duration, cb iface.OnTimeOut) (timerId int64) {
 	return s.netOp.Timer.AddTimer(start.Add(after), 0, s, cb)
 }
 
-func (s *TcpSession) RunEvery(runAt time.Time, interval time.Duration, cb iface.TimeOutCB) (timerId int64) {
+func (s *TcpSession) RunEvery(runAt time.Time, interval time.Duration, cb iface.OnTimeOut) (timerId int64) {
 	return s.netOp.Timer.AddTimer(runAt, interval, s, cb)
 }
 

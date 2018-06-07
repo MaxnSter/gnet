@@ -5,8 +5,8 @@ type WorkerPool interface {
 	Stop()
 	StopAsync() (done <-chan struct{})
 
-	Put(session NetSession, cb func())
-	TryPut(session NetSession, cb func()) bool
+	Put(ctx Context, cb func(Context))
+	TryPut(ctx Context, cb func(Context)) bool
 
 	TypeName() string
 }

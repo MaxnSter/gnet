@@ -11,7 +11,7 @@ const (
 	poolName = "poolRaceSelf"
 
 	workerNum = 20
-	queueSize = 100
+	queueSize = 256
 )
 
 func init() {
@@ -75,23 +75,35 @@ func (p *poolRaceSelf) StopAsync() (done <-chan struct{}) {
 	return p.closeDone
 }
 
-func (p *poolRaceSelf) Put(session iface.NetSession, cb func()) {
-	w := p.workers[session.ID()%workerNum]
+func (p *poolRaceSelf) Put(ctx iface.Context, cb func(iface.Context)) {
+	if identifier, ok := ctx.(iface.Identifier); !ok {
+		//TODO type error
+		logger.WithField("name", p.TypeName()).Warning("ctx not a identifier")
+	} else {
 
-	if err := w.Put(cb); err != nil {
-		logger.WithField("name", p.TypeName()).Warning("pool size limit")
-		w.MustPut(cb)
+		w := p.workers[identifier.ID()%workerNum]
 
+		if err := w.Put(ctx, cb); err != nil {
+			logger.WithField("name", p.TypeName()).Warning("pool size limit")
+			w.MustPut(ctx, cb)
+
+		}
 	}
 }
 
-func (p *poolRaceSelf) TryPut(session iface.NetSession, cb func()) bool {
+func (p *poolRaceSelf) TryPut(ctx iface.Context, cb func(iface.Context)) bool {
 
-	w := p.workers[session.ID()%workerNum]
-
-	if err := w.Put(cb); err != nil {
+	if identifier, ok := ctx.(iface.Identifier); !ok {
+		//TODO type error
+		logger.WithField("name", p.TypeName()).Warning("ctx not a identifier")
 		return false
-	}
+	} else {
 
-	return true
+		w := p.workers[identifier.ID()%workerNum]
+
+		if err := w.Put(ctx, cb); err != nil {
+			return false
+		}
+		return true
+	}
 }

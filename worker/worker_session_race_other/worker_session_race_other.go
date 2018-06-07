@@ -48,16 +48,16 @@ func (p *poolRaceOther) Stop() {
 	logger.WithField("name", p.TypeName()).Infoln("pool stopped...")
 }
 
-func (p *poolRaceOther) Put(session iface.NetSession, cb func()) {
-	if err := p.queue.Put(cb); err != nil {
+func (p *poolRaceOther) Put(ctx iface.Context, cb func(iface.Context)) {
+	if err := p.queue.Put(ctx, cb); err != nil {
 		//logger.WithField("name", p.TypeName()).Warningln("pool size limit")
-		p.queue.MustPut(cb)
+		p.queue.MustPut(ctx, cb)
 	}
 }
 
-func (p *poolRaceOther) TryPut(session iface.NetSession, cb func()) bool {
+func (p *poolRaceOther) TryPut(ctx iface.Context, cb func(iface.Context)) bool {
 
-	if err := p.queue.Put(cb); err != nil {
+	if err := p.queue.Put(ctx, cb); err != nil {
 		return false
 	}
 
