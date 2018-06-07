@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/MaxnSter/gnet/iface"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,7 +22,7 @@ func TestEventQueue_Put(t *testing.T) {
 
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
-		q.Put(func() {
+		q.Put(nil, func(_ iface.Context) {
 			for i := 0; i < math.MaxInt16; i++ {
 			}
 			wg.Done()
@@ -36,7 +37,7 @@ func TestEventQueue_Put2(t *testing.T) {
 	q.Start()
 	defer q.Stop()
 
-	q.Put(func() {
+	q.Put(nil, func(_ iface.Context) {
 		panic("panic")
 	})
 
@@ -50,7 +51,7 @@ func TestEventQueue_Stop(t *testing.T) {
 	q.Start()
 
 	for i := 0; i < 5000; i++ {
-		q.MustPut(func() {
+		q.MustPut(nil, func(_ iface.Context) {
 			for i := 0; i < math.MaxUint8; i++ {
 			}
 		})

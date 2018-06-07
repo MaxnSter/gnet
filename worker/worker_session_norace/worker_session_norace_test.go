@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/MaxnSter/gnet/iface"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -30,7 +31,7 @@ func TestNewPoolNoRace(t *testing.T) {
 
 	for i := 0; i < 500000; i++ {
 		wg.Add(1)
-		p.Put(ts, func() {
+		p.Put(ts, func(_ iface.Context) {
 			ts.Run()
 			wg.Done()
 		})
@@ -49,7 +50,7 @@ func TestPoolNoRace_Stop(t *testing.T) {
 
 	for i := 0; i < 10000; i++ {
 		wg.Add(1)
-		q.Put(nil, func() {
+		q.Put(nil, func(_ iface.Context) {
 			for i := 0; i < math.MaxUint8; i++ {
 			}
 			wg.Done()
@@ -58,7 +59,7 @@ func TestPoolNoRace_Stop(t *testing.T) {
 
 	q.Stop()
 	wg.Add(1)
-	q.Put(nil, func() {
+	q.Put(nil, func(_ iface.Context) {
 		wg.Done()
 	})
 
@@ -83,7 +84,7 @@ func TestPoolNoRace_Stop2(t *testing.T) {
 
 	for i := 0; i < 5; i++ {
 		wg.Add(1)
-		q.Put(nil, func() {
+		q.Put(nil, func(_ iface.Context) {
 			for i := 0; i < math.MaxInt8; i++ {
 			}
 			wg.Done()

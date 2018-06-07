@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/MaxnSter/gnet/iface"
 	"github.com/MaxnSter/gnet/logger"
 	"github.com/stretchr/testify/assert"
 )
@@ -29,7 +30,7 @@ func TestNewPoolRaceSelf(t *testing.T) {
 		nwg := sync.WaitGroup{}
 		ts := &tSession{Id: int64(sId), race: new(int)}
 
-		raceF := func() {
+		raceF := func(ctx iface.Context) {
 			if ts.race != nil {
 				time.Sleep(time.Millisecond)
 				*ts.race = 1
@@ -37,7 +38,7 @@ func TestNewPoolRaceSelf(t *testing.T) {
 			nwg.Done()
 		}
 
-		raceF1 := func() {
+		raceF1 := func(ctx iface.Context) {
 			ts.race = nil
 			nwg.Done()
 		}
@@ -83,7 +84,7 @@ func BenchmarkNewPoolRaceSelf(b *testing.B) {
 		nwg := sync.WaitGroup{}
 		ts := &tSession{Id: int64(sId), race: new(int)}
 
-		raceF := func() {
+		raceF := func(ctx iface.Context) {
 			if ts.race != nil {
 				time.Sleep(time.Millisecond)
 				*ts.race = 1
@@ -91,7 +92,7 @@ func BenchmarkNewPoolRaceSelf(b *testing.B) {
 			nwg.Done()
 		}
 
-		raceF1 := func() {
+		raceF1 := func(ctx iface.Context) {
 			ts.race = nil
 			nwg.Done()
 		}
@@ -134,7 +135,7 @@ func TestPoolRaceSelf_Stop(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		idx := i
-		q.Put(&tSession{int64(idx), nil}, func() {
+		q.Put(&tSession{int64(idx), nil}, func(ctx iface.Context) {
 			for i := 0; i < math.MaxUint8; i++ {
 			}
 			logger.WithField("i", idx).Infoln("task done")
@@ -158,7 +159,7 @@ func TestPoolRaceSelf_Stop2(t *testing.T) {
 	for i := 0; i < 500000; i++ {
 		wg.Add(1)
 		idx := i
-		q.Put(&tSession{int64(idx), nil}, func() {
+		q.Put(&tSession{int64(idx), nil}, func(_ iface.Context) {
 			for i := 0; i < math.MaxInt16; i++ {
 			}
 			wg.Done()
