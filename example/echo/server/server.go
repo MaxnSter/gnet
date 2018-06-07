@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	gnetOption := gnet.NewGnetOption()
+	gnetOption := gnet.NewGnetOption(gnet.WithCoder("byte"), gnet.WithPacker("line"))
 	callback := gnet.NewCallBackOption()
 
 	s := gnet.NewServer("0.0.0.0:2007", callback, gnetOption, func(ev iface.Event) {
