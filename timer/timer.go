@@ -70,7 +70,7 @@ const (
 )
 
 var (
-	_ iface.Timer = (*timerManager)(nil)
+	_ iface.Timer = (*TimerManager)(nil)
 )
 
 type entryPool struct {
@@ -85,7 +85,7 @@ func (ep *entryPool) put(t *timerEntry) {
 	ep.p.Put(t)
 }
 
-type timerManager struct {
+type TimerManager struct {
 	workers     iface.WorkerPool //负责处理callback的worker pool
 	timers      timerHeap        //管理所有user timer的最小堆
 	pauseCh     chan struct{}
@@ -100,8 +100,8 @@ type timerManager struct {
 //因为我们只用一个go routine来负责所有用户定时器,所以在timer expire时,
 //对callback的处理,必须是非阻塞的.因此,把callback的调用,交给worker pool来做
 //timerManager只负责往pool里填东西
-func NewTimerManager(workers iface.WorkerPool) *timerManager {
-	tm := &timerManager{
+func NewTimerManager(workers iface.WorkerPool) *TimerManager {
+	tm := &TimerManager{
 		workers:     workers,
 		timers:      make([]*timerEntry, 0),
 		pauseCh:     make(chan struct{}),
@@ -117,23 +117,23 @@ func NewTimerManager(workers iface.WorkerPool) *timerManager {
 	return tm
 }
 
-func (tm *timerManager) put(t *timerEntry) {
+func (tm *TimerManager) put(t *timerEntry) {
 	tm.pool.Put(t)
 }
 
-func (tm *timerManager) get() *timerEntry {
+func (tm *TimerManager) get() *timerEntry {
 	return tm.pool.Get().(*timerEntry)
 }
 
 //开启定时器功能
-func (tm *timerManager) Start() {
+func (tm *TimerManager) Start() {
 	logger.Infoln("timer start")
 
 	heap.Init(&tm.timers)
 	go tm.run()
 }
 
-func (tm *timerManager) StopAsync() (done <-chan struct{}) {
+func (tm *TimerManager) StopAsync() (done <-chan struct{}) {
 	tm.closeCh <- struct{}{}
 
 	logger.Infoln("timer stopping...")
@@ -141,7 +141,7 @@ func (tm *timerManager) StopAsync() (done <-chan struct{}) {
 }
 
 //关闭定时器,当定时器内部完全关闭时 done可读
-func (tm *timerManager) Stop() {
+func (tm *TimerManager) Stop() {
 	tm.closeCh <- struct{}{}
 
 	logger.Infoln("timer stopping...")
@@ -149,7 +149,7 @@ func (tm *timerManager) Stop() {
 }
 
 //添加一个定时
-func (tm *timerManager) AddTimer(expire time.Time, interval time.Duration, ctx iface.Context, cb iface.OnTimeOut) (id int64) {
+func (tm *TimerManager) AddTimer(expire time.Time, interval time.Duration, ctx iface.Context, cb iface.OnTimeOut) (id int64) {
 	t := tm.get()
 
 	t.expire = expire
@@ -168,7 +168,7 @@ func (tm *timerManager) AddTimer(expire time.Time, interval time.Duration, ctx i
 
 //取消一个定时,如果该timer为一次性(interval = 0)正好expire,
 //则取消无效
-func (tm *timerManager) CancelTimer(id int64) {
+func (tm *TimerManager) CancelTimer(id int64) {
 	idx := tm.timers.getTimerIdx(id)
 	if idx == -1 {
 		return
@@ -181,15 +181,15 @@ func (tm *timerManager) CancelTimer(id int64) {
 	tm.put(t.(*timerEntry))
 }
 
-func (tm *timerManager) pause() {
+func (tm *TimerManager) pause() {
 	tm.pauseCh <- struct{}{}
 }
 
-func (tm *timerManager) resume() {
+func (tm *TimerManager) resume() {
 	tm.resumeCh <- struct{}{}
 }
 
-func (tm *timerManager) run() {
+func (tm *TimerManager) run() {
 	var (
 		timeout      time.Duration
 		loopTimer    = newSafeTimer(UNTOUCHED)
@@ -226,7 +226,7 @@ func (tm *timerManager) run() {
 }
 
 //处理expired user timer的callback, 该func保证非阻塞执行
-func (tm *timerManager) handleExpired(entry *timerEntry, t time.Time) {
+func (tm *TimerManager) handleExpired(entry *timerEntry, t time.Time) {
 	f := func(ctx iface.Context) {
 		entry.cb(t, ctx)
 	}
@@ -238,7 +238,7 @@ func (tm *timerManager) handleExpired(entry *timerEntry, t time.Time) {
 }
 
 //有一个或多个user timer 到期
-func (tm *timerManager) expired(expiredTNode *[]*timerEntry) {
+func (tm *TimerManager) expired(expiredTNode *[]*timerEntry) {
 	for len(tm.timers) > 0 {
 		t := heap.Pop(&tm.timers).(*timerEntry)
 		if time.Since(t.expire) > 0 {
@@ -258,7 +258,7 @@ func (tm *timerManager) expired(expiredTNode *[]*timerEntry) {
 }
 
 //对所有interval不为0的user timer,调整expire time,重新入堆
-func (tm *timerManager) update(tNodes []*timerEntry) {
+func (tm *TimerManager) update(tNodes []*timerEntry) {
 
 	if len(tNodes) == 0 {
 		return
