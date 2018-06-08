@@ -19,7 +19,8 @@ func init() {
 
 func main() {
 	onEvent := func(ev iface.Event) {}
-	onTimer := func(t time.Time, s iface.NetSession) {
+	onTimer := func(t time.Time, ctx iface.Context) {
+		s := ctx.(iface.NetSession)
 		s.Send(&timer.TimerProto{
 			Id:      example.ProtoTimer,
 			TimeNow: time.Now(),
@@ -34,7 +35,7 @@ func main() {
 		})
 	}
 
-	callback := gnet.NewCallBackOption(gnet.WithOnConeectCB(onConnect))
+	callback := gnet.NewCallBackOption(gnet.WithOnConnectCB(onConnect))
 	gnetOption := gnet.NewGnetOption(gnet.WithCoder("msgpack"))
 	server := gnet.NewServer("0.0.0.0:2007", callback, gnetOption, onEvent)
 	server.StartAndRun()

@@ -36,7 +36,7 @@ func onMessage(ev iface.Event) {
 
 func main() {
 
-	callback := gnet.NewCallBackOption(gnet.WithOnConeectCB(func(session *net.TcpSession) {
+	callback := gnet.NewCallBackOption(gnet.WithOnConnectCB(func(session *net.TcpSession) {
 		msg := &round_trip.RoundTripProto{Id: example.ProtoRoundTrip, T1: time.Now().UnixNano(), T2: 0}
 		session.Send(msg)
 	}))
