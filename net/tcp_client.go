@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/MaxnSter/gnet/iface"
 	"github.com/MaxnSter/gnet/logger"
 )
 
@@ -76,7 +77,8 @@ func (client *TcpClient) Start() error {
 	return nil
 }
 
-func (client *TcpClient) onNewSession(conn *net.TCPConn) {
+func (client *TcpClient) onNewSession(ctx iface.Context) {
+	conn := ctx.(*net.TCPConn)
 	s := NewTcpSession(0, client.netOp, conn, func(s *TcpSession) {
 		client.wg.Done()
 	})
@@ -94,13 +96,13 @@ func (client *TcpClient) Run() {
 	client.guard.Unlock()
 
 	//start worker pool
-	client.netOp.Worker.Start()
+	client.netOp.Pool.Start()
 
 	//start timer
 	client.netOp.Timer.Start()
 
 	client.wg.Add(1)
-	go client.onNewSession(client.raw.(*net.TCPConn))
+	client.netOp.RunInLoop(client.raw, client.onNewSession)
 
 	//忽略SIGPIPE
 	//TCP_NODELAY默认开启
@@ -121,7 +123,7 @@ func (client *TcpClient) Run() {
 	logger.Infoln("session closed")
 
 	//close worker pool wait close Done
-	client.netOp.Worker.Stop()
+	client.netOp.Pool.Stop()
 
 	//close timer and wait for close Done
 	client.netOp.Timer.Stop()

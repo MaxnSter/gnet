@@ -109,14 +109,16 @@ func (server *TcpServer) accept() {
 		}
 
 		delayTime = 0
-
 		server.wg.Add(1)
-		go server.onNewConnection(conn)
-		logger.WithField("addr", conn.RemoteAddr().String()).Debugln("new connection accepted")
+		server.Options.RunInLoop(conn, server.onNewConnection)
 	}
 }
 
-func (server *TcpServer) onNewConnection(conn *net.TCPConn) {
+func (server *TcpServer) onNewConnection(ctx iface.Context) {
+
+	conn := ctx.(*net.TCPConn)
+	logger.WithField("addr", conn.RemoteAddr().String()).Debugln("new connection accepted")
+
 	sid := util.GetUUID()
 	session := NewTcpSession(sid, server.Options, conn, func(s *TcpSession) {
 		//after session close done
@@ -147,7 +149,7 @@ func (server *TcpServer) Run() {
 	logger.Infoln("server start running...")
 
 	//开启worker pool
-	server.Options.Worker.Start()
+	server.Options.Pool.Start()
 
 	//开启timer manager
 	server.Options.Timer.Start()
@@ -168,7 +170,7 @@ func (server *TcpServer) Run() {
 	server.wg.Wait()
 	logger.Infoln("all session closed")
 
-	server.Options.Worker.Stop()
+	server.Options.Pool.Stop()
 	server.Options.Timer.Stop()
 
 	if server.Options.OnServerClosed != nil {

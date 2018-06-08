@@ -9,7 +9,7 @@ import (
 type NetOptions struct {
 	Coder  iface.Coder
 	Packer iface.Packer
-	Worker iface.WorkerPool
+	Pool   iface.WorkerPool
 	CB     iface.OnMessage
 	Timer  iface.Timer
 
@@ -35,7 +35,12 @@ func (op *NetOptions) WriteMessage(writer io.Writer, msg interface{}) error {
 }
 
 func (op *NetOptions) PostEvent(ev iface.Event) {
-	op.Worker.Put(ev.Session(), func(_ iface.Context) {
+	op.Pool.Put(ev.Session(), func(_ iface.Context) {
 		op.CB.OnMessageCB(ev)
 	})
+}
+
+func (op *NetOptions) RunInLoop(ctx iface.Context, cb func(iface.Context)) {
+	//TODO Pool too buys ?
+	op.Pool.Put(ctx, cb)
 }

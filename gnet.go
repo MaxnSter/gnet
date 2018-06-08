@@ -30,7 +30,7 @@ func NewServerSharePool(addr string,
 
 	netOp := &net.NetOptions{
 		Coder:  codec.MustGetCoder(gnetOption.Coder),
-		Worker: sharePool,
+		Pool:   sharePool,
 		Packer: pack.MustGetPacker(gnetOption.Packer),
 		CB:     onMessage,
 
@@ -38,7 +38,7 @@ func NewServerSharePool(addr string,
 		OnSessionClose: cbOption.OnSessionClose,
 		OnServerClosed: cbOption.OnServerClosed,
 	}
-	netOp.Timer = timer.NewTimerManager(netOp.Worker)
+	netOp.Timer = timer.NewTimerManager(netOp.Pool)
 
 	return net.NewTcpServer(addr, "", netOp)
 }
@@ -60,7 +60,7 @@ func NewClientSharePool(addr string,
 
 	netOp := &net.NetOptions{
 		Coder:  codec.MustGetCoder(gnetOption.Coder),
-		Worker: sharePool,
+		Pool:   sharePool,
 		Packer: pack.MustGetPacker(gnetOption.Packer),
 		CB:     onMessage,
 
@@ -68,7 +68,7 @@ func NewClientSharePool(addr string,
 		OnSessionClose: cbOption.OnSessionClose,
 		OnServerClosed: cbOption.OnServerClosed,
 	}
-	netOp.Timer = timer.NewTimerManager(netOp.Worker)
+	netOp.Timer = timer.NewTimerManager(netOp.Pool)
 
 	return net.NewTcpClient(addr, netOp)
 }
@@ -77,7 +77,7 @@ func newNetOption(cbOption *CallBackOption, gnetOption *GnetOption, onMessage if
 
 	netOp := &net.NetOptions{
 		Coder:  codec.MustGetCoder(gnetOption.Coder),
-		Worker: worker.MustGetWorkerPool(gnetOption.WorkerPool),
+		Pool:   worker.MustGetWorkerPool(gnetOption.WorkerPool),
 		Packer: pack.MustGetPacker(gnetOption.Packer),
 		CB:     onMessage,
 
@@ -85,7 +85,7 @@ func newNetOption(cbOption *CallBackOption, gnetOption *GnetOption, onMessage if
 		OnSessionClose: cbOption.OnSessionClose,
 		OnServerClosed: cbOption.OnServerClosed,
 	}
-	netOp.Timer = timer.NewTimerManager(netOp.Worker)
+	netOp.Timer = timer.NewTimerManager(netOp.Pool)
 
 	return netOp
 }
