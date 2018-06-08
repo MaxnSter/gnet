@@ -22,12 +22,54 @@ func NewServer(addr string,
 	return net.NewTcpServer(addr, "", netOp)
 }
 
+func NewServerSharePool(addr string,
+	cbOption *CallBackOption,
+	gnetOption *GnetOption,
+	sharePool iface.WorkerPool,
+	onMessage iface.OnMessageFunc) *net.TcpServer {
+
+	netOp := &net.NetOptions{
+		Coder:  codec.MustGetCoder(gnetOption.Coder),
+		Worker: sharePool,
+		Packer: pack.MustGetPacker(gnetOption.Packer),
+		CB:     onMessage,
+
+		OnConnected:    cbOption.OnConnect,
+		OnSessionClose: cbOption.OnSessionClose,
+		OnServerClosed: cbOption.OnServerClosed,
+	}
+	netOp.Timer = timer.NewTimerManager(netOp.Worker)
+
+	return net.NewTcpServer(addr, "", netOp)
+}
+
 func NewClient(addr string,
 	cbOption *CallBackOption,
 	gnetOption *GnetOption,
 	onMessage iface.OnMessageFunc) *net.TcpClient {
 
 	netOp := newNetOption(cbOption, gnetOption, onMessage)
+	return net.NewTcpClient(addr, netOp)
+}
+
+func NewClientSharePool(addr string,
+	cbOption *CallBackOption,
+	gnetOption *GnetOption,
+	sharePool iface.WorkerPool,
+	onMessage iface.OnMessageFunc) *net.TcpClient {
+
+	netOp := &net.NetOptions{
+		Coder:  codec.MustGetCoder(gnetOption.Coder),
+		Worker: sharePool,
+		Packer: pack.MustGetPacker(gnetOption.Packer),
+		CB:     onMessage,
+
+		OnConnected:    cbOption.OnConnect,
+		OnSessionClose: cbOption.OnSessionClose,
+		OnServerClosed: cbOption.OnServerClosed,
+	}
+	netOp.Timer = timer.NewTimerManager(netOp.Worker)
+
 	return net.NewTcpClient(addr, netOp)
 }
 
@@ -57,7 +99,7 @@ type CallBackOption struct {
 	OnServerClosed net.OnServerClosedFunc
 }
 
-func WithOnConeectCB(onConnect net.OnConnectedFunc) func(*CallBackOption) {
+func WithOnConnectCB(onConnect net.OnConnectedFunc) func(*CallBackOption) {
 	return func(o *CallBackOption) {
 		o.OnConnect = onConnect
 	}
