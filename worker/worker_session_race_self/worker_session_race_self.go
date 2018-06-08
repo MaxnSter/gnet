@@ -1,6 +1,8 @@
 package worker_session_race_self
 
 import (
+	"math/rand"
+
 	"github.com/MaxnSter/gnet/iface"
 	"github.com/MaxnSter/gnet/logger"
 	"github.com/MaxnSter/gnet/worker"
@@ -76,18 +78,19 @@ func (p *poolRaceSelf) StopAsync() (done <-chan struct{}) {
 }
 
 func (p *poolRaceSelf) Put(ctx iface.Context, cb func(iface.Context)) {
+
+	var w *basic_event_queue.EventQueue
+
 	if identifier, ok := ctx.(iface.Identifier); !ok {
-		//TODO type error
-		logger.WithField("name", p.TypeName()).Warning("ctx not a identifier")
+		//TODO warning?
+		w = p.workers[rand.Intn(workerNum)%workerNum]
 	} else {
+		w = p.workers[identifier.ID()%workerNum]
+	}
 
-		w := p.workers[identifier.ID()%workerNum]
-
-		if err := w.Put(ctx, cb); err != nil {
-			logger.WithField("name", p.TypeName()).Warning("pool size limit")
-			w.MustPut(ctx, cb)
-
-		}
+	if err := w.Put(ctx, cb); err != nil {
+		logger.WithField("name", p.TypeName()).Warning("pool size limit")
+		w.MustPut(ctx, cb)
 	}
 }
 
