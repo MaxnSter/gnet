@@ -19,9 +19,9 @@ type SessionManager interface {
 	RmSession(s NetSession) error
 }
 
-type Server interface {
+type NetServer interface {
 	SessionManager
 
-	Start(userCb OnMessage)
+	Start()
 	Stop()
 }
