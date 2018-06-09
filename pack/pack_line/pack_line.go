@@ -52,7 +52,7 @@ func (p *linePacker) Unpack(reader io.Reader, c iface.Coder) (msg interface{}, e
 	}
 
 	msg = data
-	return msg, nil
+	return
 
 }
 
