@@ -49,7 +49,7 @@ func (p *lvPacker) Unpack(reader io.Reader, c iface.Coder) (msg interface{}, err
 	}
 
 	// 解析长度字段
-	length := binary.LittleEndian.Uint32(lengthBuf)
+	length := binary.BigEndian.Uint32(lengthBuf)
 	if length > maxLen {
 		//TODO error wrapper
 		return nil, errors.New("msg too long")
@@ -65,7 +65,7 @@ func (p *lvPacker) Unpack(reader io.Reader, c iface.Coder) (msg interface{}, err
 	// 不知道对应的meta,所以只能用byteCoder
 	// 未来考虑这里可以指定一个meta
 	var data[]byte
-	err = c.Decode(value, data)
+	err = c.Decode(value, &data)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func (p *lvPacker) Pack(writer io.Writer, c iface.Coder, msg interface{}) error 
 	pack := make([]byte, totalLen)
 
 	// 写入length段
-	binary.LittleEndian.PutUint32(pack, uint32(valueLen))
+	binary.BigEndian.PutUint32(pack, uint32(valueLen))
 
 	// 写入value段
 	copy(pack[lengthSize:], encodeBuf)

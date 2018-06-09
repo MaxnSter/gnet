@@ -48,7 +48,7 @@ func (p *tlvPacker) Unpack(reader io.Reader, c iface.Coder) (msg interface{}, er
 	}
 
 	//解析长度段
-	length := binary.LittleEndian.Uint32(lengthBuf)
+	length := binary.BigEndian.Uint32(lengthBuf)
 	if length > maxLength {
 		return nil, errors.New("msg too long")
 	}
@@ -61,7 +61,7 @@ func (p *tlvPacker) Unpack(reader io.Reader, c iface.Coder) (msg interface{}, er
 	}
 
 	//从body中解析messageId,根据messageId,我们可以获取该messageId对应的meta信息
-	msgId := binary.LittleEndian.Uint32(body)
+	msgId := binary.BigEndian.Uint32(body)
 	msgNew := message.MustGetMsgMeta(msgId).NewType()
 
 	//body字段,meta信息,用于decode,得到最终的message
@@ -98,10 +98,10 @@ func (p *tlvPacker) Pack(writer io.Writer, c iface.Coder, msg interface{}) error
 
 	// put length
 	// Length的值 = Type + Value总的长度
-	binary.LittleEndian.PutUint32(pack, uint32(bodyLen))
+	binary.BigEndian.PutUint32(pack, uint32(bodyLen))
 
 	// put type(msgId)
-	binary.LittleEndian.PutUint32(pack[lengthBytes:], uint32(msgId))
+	binary.BigEndian.PutUint32(pack[lengthBytes:], uint32(msgId))
 
 	// put value([]byte after encode)
 	copy(pack[(lengthBytes + typeBytes):], buf)
