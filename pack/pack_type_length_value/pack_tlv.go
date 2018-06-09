@@ -17,11 +17,10 @@ var (
 
 const (
 	TlvPackerName = "tlv"
-	LengthBytes   = 4
-	TypeBytes     = 4
 
-	// 8M
-	MaxLength = 1 << 23
+	lengthBytes = 4
+	typeBytes   = 4
+	maxLength   = 1 << 23
 )
 
 // ------------|---------------|-------------
@@ -37,7 +36,7 @@ type tlvPacker struct {
 func (p *tlvPacker) Unpack(reader io.Reader, c iface.Coder) (msg interface{}, err error) {
 
 	//读取长度段
-	lengthBuf := make([]byte, LengthBytes)
+	lengthBuf := make([]byte, lengthBytes)
 	_, err = io.ReadFull(reader, lengthBuf)
 	if err != nil {
 		//remote close socket
@@ -50,8 +49,8 @@ func (p *tlvPacker) Unpack(reader io.Reader, c iface.Coder) (msg interface{}, er
 
 	//解析长度段
 	length := binary.LittleEndian.Uint32(lengthBuf)
-	if length > MaxLength {
-		return nil, errors.New("msg too big")
+	if length > maxLength {
+		return nil, errors.New("msg too long")
 	}
 
 	//根据length,读取对应字节数
@@ -66,7 +65,7 @@ func (p *tlvPacker) Unpack(reader io.Reader, c iface.Coder) (msg interface{}, er
 	msgNew := message.MustGetMsgMeta(msgId).NewType()
 
 	//body字段,meta信息,用于decode,得到最终的message
-	body = body[TypeBytes:]
+	body = body[typeBytes:]
 	err = c.Decode(body, msgNew)
 	if err != nil {
 		return nil, err
@@ -90,10 +89,10 @@ func (p *tlvPacker) Pack(writer io.Writer, c iface.Coder, msg interface{}) error
 	}
 
 	//对应上图, Length + Type + Value 总的长度
-	totalLen := LengthBytes + TypeBytes + len(buf)
+	totalLen := lengthBytes + typeBytes + len(buf)
 
 	//对应上图 Type + Value总的长度,
-	bodyLen := TypeBytes + len(buf)
+	bodyLen := typeBytes + len(buf)
 
 	pack := make([]byte, totalLen)
 
@@ -102,10 +101,10 @@ func (p *tlvPacker) Pack(writer io.Writer, c iface.Coder, msg interface{}) error
 	binary.LittleEndian.PutUint32(pack, uint32(bodyLen))
 
 	// put type(msgId)
-	binary.LittleEndian.PutUint32(pack[LengthBytes:], uint32(msgId))
+	binary.LittleEndian.PutUint32(pack[lengthBytes:], uint32(msgId))
 
 	// put value([]byte after encode)
-	copy(pack[(LengthBytes+TypeBytes):], buf)
+	copy(pack[(lengthBytes + typeBytes):], buf)
 
 	// 一直写
 	if err := util.WriteFull(writer, pack); err != nil {
