@@ -43,20 +43,20 @@ func TestMsgQueue_Add(t *testing.T) {
 
 	go func() {
 		for i := 0; i < 10000; i++ {
-			q.Add(i)
+			q.Put(i)
 		}
 	}()
 
 	go func() {
 		for i := 0; i < 10000; i++ {
-			q.Add(i)
+			q.Put(i)
 		}
-		q.Add(nil)
+		q.Put(nil)
 	}()
 
 	go func() {
 		for i := 0; i < 10000; i++ {
-			q.Add(i)
+			q.Put(i)
 		}
 	}()
 }

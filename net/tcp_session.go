@@ -126,7 +126,7 @@ func (s *TcpSession) Stop() {
 
 		//send signal to writeLoop, shutdown wr until nothing more to send
 		logger.WithField("sessionId", s.id).Debugln("close WriteLoop...")
-		s.sendQue.Add(nil)
+		s.sendQue.Put(nil)
 
 		//wait for readLoop and writeLoop finish
 		s.wg.Wait()
@@ -223,7 +223,6 @@ func (s *TcpSession) writeLoop() {
 		s.sendQue.PickWithSignal(s.closeCh, &msgs)
 
 		for _, msg := range msgs {
-
 			if msg == nil {
 				//TODO error handing?
 				s.connWrap.Flush()
@@ -253,7 +252,7 @@ func (s *TcpSession) Send(msg interface{}) {
 	default:
 	}
 
-	s.sendQue.Add(msg)
+	s.sendQue.Put(msg)
 }
 
 func (s *TcpSession) LoadCtx(k interface{}) (v interface{}, ok bool) {

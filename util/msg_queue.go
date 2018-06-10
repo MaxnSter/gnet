@@ -37,7 +37,7 @@ func NewMsgQueueWithCap(cap int) *MsgQueue {
 }
 
 // Add往队列中添加元素
-func (q *MsgQueue) Add(msg interface{}) {
+func (q *MsgQueue) Put(msg interface{}) {
 	q.lock.Lock()
 	curList := q.produceList
 	*curList = append(*curList, msg)

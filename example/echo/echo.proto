@@ -1,8 +1,0 @@
-syntax = "proto3";
-
-package echo;
-
-message EchoProto {
-    uint32 Id = 1;
-    string msg = 2;
-}
