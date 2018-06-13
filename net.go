@@ -13,6 +13,7 @@ type Property interface {
 
 type SessionManager interface {
 	Broadcast(func(session NetSession))
+	GetSession(id int64) (NetSession, bool)
 }
 
 type NetSession interface {

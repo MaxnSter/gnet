@@ -181,6 +181,14 @@ func (s *tcpServer) Broadcast(fn func(session gnet.NetSession)) {
 	})
 }
 
+func (s *tcpServer) GetSession(id int64) (gnet.NetSession, bool) {
+	if session, ok := s.sessions.Load(id); ok {
+		return session.(gnet.NetSession), true
+	} else {
+		return nil, false
+	}
+}
+
 func init() {
 	gnet.RegisterServerCreator("tcp", newTcpServer)
 }

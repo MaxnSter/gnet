@@ -42,37 +42,37 @@ func newTcpClient(name string, m gnet.Module, o gnet.Operator) gnet.NetClient {
 	}
 }
 
-func (client *tcpClient) SetSessionNumber(sessionNumber int) {
-	client.sessionNumber = sessionNumber
+func (c *tcpClient) SetSessionNumber(sessionNumber int) {
+	c.sessionNumber = sessionNumber
 }
 
-func (client *tcpClient) Connect(addr string) {
-	if !client.status.start() {
+func (c *tcpClient) Connect(addr string) {
+	if !c.status.start() {
 		//TODO duplicate Connect()
 		return
 	}
 
-	logger.WithField("addr", client.addr).Infoln("client connecting to ...")
-	client.addr = addr
+	logger.WithField("addr", c.addr).Infoln("client connecting to ...")
+	c.addr = addr
 
-	client.wg.Add(client.sessionNumber)
-	for i := 0; i < client.sessionNumber; i++ {
-		go client.connect()
+	c.wg.Add(c.sessionNumber)
+	for i := 0; i < c.sessionNumber; i++ {
+		go c.connect()
 	}
 
-	client.Run()
+	c.Run()
 }
 
-func (client *tcpClient) connect() {
+func (c *tcpClient) connect() {
 	var conn net.Conn
 	var err error
 	curRetryDuration := baseRetryDuration
 
 	for {
-		conn, err = net.Dial("tcp", client.addr)
+		conn, err = net.Dial("tcp", c.addr)
 
 		if err == nil {
-			logger.WithField("addr", client.addr).Infoln("client connected to ")
+			logger.WithField("addr", c.addr).Infoln("client connected to ")
 			break
 		}
 
@@ -85,65 +85,73 @@ func (client *tcpClient) connect() {
 		time.Sleep(curRetryDuration)
 	}
 
-	client.onNewSession(conn.(*net.TCPConn))
+	c.onNewSession(conn.(*net.TCPConn))
 }
 
-func (client *tcpClient) onNewSession(conn *net.TCPConn) {
+func (c *tcpClient) onNewSession(conn *net.TCPConn) {
 	sid := util.GetUUID()
-	s := NewTcpSession(sid, conn, client.module, client.operator, func(s *tcpSession) {
-		client.sessions.Delete(s.ID())
-		client.wg.Done()
+	s := NewTcpSession(sid, conn, c.module, c.operator, func(s *tcpSession) {
+		c.sessions.Delete(s.ID())
+		c.wg.Done()
 	})
 
-	client.sessions.Store(sid, s)
+	c.sessions.Store(sid, s)
 	s.Start()
 }
 
-func (client *tcpClient) setSignal() {
+func (c *tcpClient) setSignal() {
 	sigCh := make(chan os.Signal, 1)
 	signal.Ignore(syscall.SIGPIPE)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGKILL, syscall.SIGTERM)
 
 	go func() {
 		s := <-sigCh
-		logger.WithField("signal", s).Infoln("client catch signal")
-		client.Stop()
+		logger.WithField("signal", s).Infoln("c catch signal")
+		c.Stop()
 	}()
 }
 
-func (client *tcpClient) Run() {
-	client.operator.StartModule(client.module)
+func (c *tcpClient) Run() {
+	c.operator.StartModule(c.module)
 
 	//wait for session to stop
-	client.wg.Wait()
+	c.wg.Wait()
 	logger.Infoln("all sessions closed")
 
 	//stop module
-	client.operator.StopModule(client.module)
+	c.operator.StopModule(c.module)
 	logger.Infoln("client closed, exit...")
 }
 
-func (client *tcpClient) Stop() {
-	if !client.status.stop() {
+func (c *tcpClient) Stop() {
+	if !c.status.stop() {
 		//TODO duplicate stop()
 		return
 	}
 
 	logger.Infoln("client stopping...")
 	logger.Infoln("stopping session...")
-	client.Broadcast(func(session gnet.NetSession) {
+	c.Broadcast(func(session gnet.NetSession) {
 		session.Stop()
 	})
 }
 
-func (client *tcpClient) Broadcast(fn func(session gnet.NetSession)) {
+func (c *tcpClient) Broadcast(fn func(session gnet.NetSession)) {
 	//FIXME callback hell
-	client.sessions.Range(func(id, session interface{}) bool {
-		client.module.Pool().Put(session, func(ctx iface.Context) {
+	c.sessions.Range(func(id, session interface{}) bool {
+		c.module.Pool().Put(session, func(ctx iface.Context) {
 			fn(ctx.(gnet.NetSession))
 		})
 		return true
 	})
+}
+
+func (c *tcpClient) GetSession(id int64) (gnet.NetSession, bool) {
+	if session, ok := c.sessions.Load(id); ok {
+		return session.(gnet.NetSession), true
+	} else {
+		return nil, false
+	}
 }
 
 func init() {
