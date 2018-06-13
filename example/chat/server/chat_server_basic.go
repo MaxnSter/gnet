@@ -6,7 +6,7 @@ import (
 	_ "net/http/pprof"
 
 	_ "github.com/MaxnSter/gnet/codec/codec_byte"
-	_ "github.com/MaxnSter/gnet/pack/pack_length_value"
+	_ "github.com/MaxnSter/gnet/message_pack/pack/pack_length_value"
 	_ "github.com/MaxnSter/gnet/worker/worker_session_race_other"
 
 	"github.com/MaxnSter/gnet"

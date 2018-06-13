@@ -4,7 +4,7 @@ import (
 	"reflect"
 
 	"github.com/MaxnSter/gnet/example"
-	"github.com/MaxnSter/gnet/message"
+	"github.com/MaxnSter/gnet/message_pack/message_meta"
 )
 
 type RoundTripProto struct {
@@ -18,7 +18,7 @@ func (r *RoundTripProto) GetId() uint32 {
 }
 
 func init() {
-	message.RegisterMsgMeta(example.ProtoRoundTrip, message.NewMsgMeta(
+	message_meta.RegisterMsgMeta(example.ProtoRoundTrip, message_meta.NewMessageMeta(
 		example.ProtoRoundTrip, reflect.TypeOf((*RoundTripProto)(nil)).Elem(),
 	))
 }

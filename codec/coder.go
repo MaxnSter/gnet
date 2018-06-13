@@ -1,4 +1,4 @@
-package iface
+package codec
 
 //the coder
 type Coder interface {

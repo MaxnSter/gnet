@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/MaxnSter/gnet/example"
-	"github.com/MaxnSter/gnet/message"
+	"github.com/MaxnSter/gnet/message_pack/message_meta"
 )
 
 type TimerProto struct {
@@ -18,6 +18,6 @@ func (proto *TimerProto) GetId() uint32 {
 }
 
 func init() {
-	message.RegisterMsgMeta(example.ProtoTimer,
-		message.NewMsgMeta(example.ProtoTimer, reflect.TypeOf((*TimerProto)(nil)).Elem()))
+	message_meta.RegisterMsgMeta(example.ProtoTimer,
+		message_meta.NewMessageMeta(example.ProtoTimer, reflect.TypeOf((*TimerProto)(nil)).Elem()))
 }

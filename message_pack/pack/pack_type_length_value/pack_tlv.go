@@ -5,14 +5,15 @@ import (
 	"errors"
 	"io"
 
+	"github.com/MaxnSter/gnet/codec"
 	"github.com/MaxnSter/gnet/iface"
-	"github.com/MaxnSter/gnet/message"
-	"github.com/MaxnSter/gnet/pack"
+	"github.com/MaxnSter/gnet/message_pack/message_meta"
+	"github.com/MaxnSter/gnet/message_pack"
 	"github.com/MaxnSter/gnet/util"
 )
 
 var (
-	_ iface.Packer = (*tlvPacker)(nil)
+	_ message_pack.Packer = (*tlvPacker)(nil)
 )
 
 const (
@@ -33,7 +34,7 @@ type tlvPacker struct {
 }
 
 //从指定reader中读数据,并根据指定的coder反序列化出一个message
-func (p *tlvPacker) Unpack(reader io.Reader, c iface.Coder) (msg interface{}, err error) {
+func (p *tlvPacker) Unpack(reader io.Reader, c codec.Coder, meta *message_meta.MessageMeta) (msg interface{}, err error) {
 
 	//读取长度段
 	lengthBuf := make([]byte, lengthBytes)
@@ -60,9 +61,13 @@ func (p *tlvPacker) Unpack(reader io.Reader, c iface.Coder) (msg interface{}, er
 		return nil, err
 	}
 
+	//FIXME 优先使用指定的meta
+	if meta != nil {
+	}
+
 	//从body中解析messageId,根据messageId,我们可以获取该messageId对应的meta信息
 	msgId := binary.BigEndian.Uint32(body)
-	msgNew := message.MustGetMsgMeta(msgId).NewType()
+	msgNew := message_meta.MustGetMsgMeta(msgId).NewType()
 
 	//body字段,meta信息,用于decode,得到最终的message
 	body = body[typeBytes:]
@@ -75,7 +80,7 @@ func (p *tlvPacker) Unpack(reader io.Reader, c iface.Coder) (msg interface{}, er
 }
 
 //根据制定coder序列化制定message,最后写入制定writer
-func (p *tlvPacker) Pack(writer io.Writer, c iface.Coder, msg interface{}) error {
+func (p *tlvPacker) Pack(writer io.Writer, c codec.Coder, msg interface{}) error {
 
 	//获取该对应的messageId
 	msgId := msg.(iface.Message).GetId()
@@ -121,5 +126,5 @@ func (p *tlvPacker) TypeName() string {
 
 //注册packer
 func init() {
-	pack.RegisterPacker(TlvPackerName, &tlvPacker{})
+	message_pack.RegisterPacker(TlvPackerName, &tlvPacker{})
 }

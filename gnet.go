@@ -5,8 +5,8 @@ import (
 	_ "github.com/MaxnSter/gnet/codec/codec_msgpack"
 	"github.com/MaxnSter/gnet/iface"
 	"github.com/MaxnSter/gnet/net"
-	"github.com/MaxnSter/gnet/pack"
-	_ "github.com/MaxnSter/gnet/pack/pack_type_length_value"
+	"github.com/MaxnSter/gnet/message_pack"
+	_ "github.com/MaxnSter/gnet/message_pack/pack/pack_type_length_value"
 	"github.com/MaxnSter/gnet/timer"
 	"github.com/MaxnSter/gnet/worker"
 	_ "github.com/MaxnSter/gnet/worker/worker_session_race_self"
@@ -31,7 +31,7 @@ func NewServerSharePool(addr string,
 	netOp := &net.NetOptions{
 		Coder:  codec.MustGetCoder(gnetOption.Coder),
 		Pool:   sharePool,
-		Packer: pack.MustGetPacker(gnetOption.Packer),
+		Packer: message_pack.MustGetPacker(gnetOption.Packer),
 		CB:     onMessage,
 
 		OnConnected:    cbOption.OnConnect,
@@ -61,7 +61,7 @@ func NewClientSharePool(addr string,
 	netOp := &net.NetOptions{
 		Coder:  codec.MustGetCoder(gnetOption.Coder),
 		Pool:   sharePool,
-		Packer: pack.MustGetPacker(gnetOption.Packer),
+		Packer: message_pack.MustGetPacker(gnetOption.Packer),
 		CB:     onMessage,
 
 		OnConnected:    cbOption.OnConnect,
@@ -78,7 +78,7 @@ func newNetOption(cbOption *CallBackOption, gnetOption *GnetOption, onMessage if
 	netOp := &net.NetOptions{
 		Coder:  codec.MustGetCoder(gnetOption.Coder),
 		Pool:   worker.MustGetWorkerPool(gnetOption.WorkerPool),
-		Packer: pack.MustGetPacker(gnetOption.Packer),
+		Packer: message_pack.MustGetPacker(gnetOption.Packer),
 		CB:     onMessage,
 
 		OnConnected:    cbOption.OnConnect,

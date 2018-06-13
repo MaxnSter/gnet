@@ -5,8 +5,9 @@ import (
 	"errors"
 	"io"
 
-	"github.com/MaxnSter/gnet/iface"
-	"github.com/MaxnSter/gnet/pack"
+	"github.com/MaxnSter/gnet/codec"
+	"github.com/MaxnSter/gnet/message_pack"
+	"github.com/MaxnSter/gnet/message_pack/message_meta"
 	"github.com/MaxnSter/gnet/util"
 )
 
@@ -27,7 +28,7 @@ const (
 // ------------------------------------------
 
 var (
-	_ iface.Packer = (*lvPacker)(nil)
+	_ message_pack.Packer = (*lvPacker)(nil)
 )
 
 // NOTE: lvPacker只能与byteCoder使用
@@ -35,7 +36,7 @@ type lvPacker struct {
 }
 
 // Unpack 使用length-value的解包方式读消息,然后返回value对应的[]byte
-func (p *lvPacker) Unpack(reader io.Reader, c iface.Coder) (msg interface{}, err error) {
+func (p *lvPacker) Unpack(reader io.Reader, c codec.Coder, meta *message_meta.MessageMeta) (msg interface{}, err error) {
 	// 读取长度段
 	lengthBuf := make([]byte, lengthSize)
 	_, err = io.ReadFull(reader, lengthBuf)
@@ -62,20 +63,29 @@ func (p *lvPacker) Unpack(reader io.Reader, c iface.Coder) (msg interface{}, err
 		return nil, err
 	}
 
-	// 不知道对应的meta,所以只能用byteCoder
-	// 未来考虑这里可以指定一个meta
-	var data[]byte
-	err = c.Decode(value, &data)
-	if err != nil {
-		return nil, err
+	if meta != nil {
+		// 使用指定的元数据
+		msgNew := meta.NewType()
+		err = c.Decode(value, msgNew)
+		if err != nil {
+			return nil, err
+		}
+		msg = msgNew
+	} else {
+		// 不知道元数据,只能只能用byte
+		var data []byte
+		err = c.Decode(value, &data)
+		if err != nil {
+			return nil, err
+		}
+		msg = data
 	}
 
-	msg = data
 	return
 }
 
 // Pack 使用length-value的形式对消息封包,并保证全部写入socket,直到错误
-func (p *lvPacker) Pack(writer io.Writer, c iface.Coder, msg interface{}) error {
+func (p *lvPacker) Pack(writer io.Writer, c codec.Coder, msg interface{}) error {
 	encodeBuf, err := c.Encode(msg)
 	if err != nil {
 		return err
@@ -103,10 +113,10 @@ func (p *lvPacker) Pack(writer io.Writer, c iface.Coder, msg interface{}) error 
 }
 
 // TypeName 返回lvPacker的名称
-func (p *lvPacker) TypeName() string{
+func (p *lvPacker) TypeName() string {
 	return LvPackName
 }
 
 func init() {
-	pack.RegisterPacker(LvPackName, &lvPacker{})
+	message_pack.RegisterPacker(LvPackName, &lvPacker{})
 }
