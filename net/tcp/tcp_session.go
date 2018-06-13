@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/MaxnSter/gnet"
+	"github.com/MaxnSter/gnet/iface"
 	"github.com/MaxnSter/gnet/logger"
 	"github.com/MaxnSter/gnet/timer"
 	"github.com/MaxnSter/gnet/util"
@@ -80,10 +81,14 @@ func (s *tcpSession) Start() {
 	go s.readLoop()
 	go s.writeLoop()
 
-	//callback to user
+	//callback to user in loop
 	if s.operator.GetOnConnected() != nil {
 		logger.WithField("sessionId", s.id).Debugln("session onConnected, callback to user")
-		s.operator.GetOnConnected()(s)
+		if s.module.Pool() == nil {
+			s.operator.GetOnConnected()(s)
+		} else {
+			s.RunInPool(s.operator.GetOnConnected())
+		}
 	}
 
 }
@@ -105,7 +110,11 @@ func (s *tcpSession) Stop() {
 
 		if s.operator.GetOnClose() != nil {
 			logger.WithField("sessionId", s.id).Debugln("session onClose, callback to user")
-			s.operator.GetOnClose()(s)
+			if s.module.Pool() == nil {
+				s.operator.GetOnClose()(s)
+			} else {
+				s.RunInPool(s.operator.GetOnClose())
+			}
 		}
 
 		//close readLoop
@@ -229,6 +238,16 @@ func (s *tcpSession) writeLoop() {
 		}
 	}
 
+}
+
+func (s *tcpSession) RunInPool(f func(gnet.NetSession)) {
+	if s.module.Pool() == nil {
+		f(s)
+	} else {
+		s.module.Pool().Put(s, func(ctx iface.Context) {
+			f(ctx.(gnet.NetSession))
+		})
+	}
 }
 
 func (s *tcpSession) Send(msg interface{}) {
