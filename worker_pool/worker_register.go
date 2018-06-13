@@ -1,8 +1,8 @@
-package worker
+package worker_pool
 
 import "github.com/MaxnSter/gnet/iface"
 
-type workerPoolCreator func() iface.WorkerPool
+type workerPoolCreator func() Pool
 
 var (
 	workerPools = map[string]workerPoolCreator{}
@@ -10,15 +10,15 @@ var (
 
 func RegisterWorkerPool(name string, creator workerPoolCreator) {
 	if _, ok := workerPools[name]; ok {
-		panic("dup register WorkerPool, name : " + name)
+		panic("dup register Pool, name : " + name)
 	}
 
 	workerPools[name] = creator
 }
 
-func MustGetWorkerPool(name string) iface.WorkerPool {
+func MustGetWorkerPool(name string) Pool {
 	if creator, ok := workerPools[name]; !ok {
-		panic("WorkerPool not register, name : " + name)
+		panic("Pool not register, name : " + name)
 	} else {
 		return creator()
 	}

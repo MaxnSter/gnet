@@ -5,20 +5,17 @@ import (
 	"runtime/debug"
 	"sync"
 
-	"github.com/MaxnSter/gnet/iface"
 	"github.com/MaxnSter/gnet/logger"
+	"github.com/MaxnSter/gnet/worker_pool"
 )
 
-type CallBackWrapper func(ctx iface.Context, cb func(iface.Context))
+type CallBackWrapper func(ctx worker_pool.Context, cb func(worker_pool.Context))
 
-func Decorate(usrCtx iface.Context, usrCb func(iface.Context), wrapper CallBackWrapper) func() {
-	return func() {
-		wrapper(usrCtx, usrCb)
-	}
+func Decorate(usrCtx worker_pool.Context, usrCb func(worker_pool.Context), wrapper CallBackWrapper) func() { return func() { wrapper(usrCtx, usrCb) }
 }
 
 var (
-	SafeCallBack = func(ctx iface.Context, cb func(iface.Context)) {
+	SafeCallBack = func(ctx worker_pool.Context, cb func(worker_pool.Context)) {
 		defer func() {
 			if r := recover(); r != nil {
 				// TODO error handing
@@ -30,7 +27,7 @@ var (
 		cb(ctx)
 	}
 
-	UnSafeCallBack = func(ctx iface.Context, cb func(iface.Context)) {
+	UnSafeCallBack = func(ctx worker_pool.Context, cb func(worker_pool.Context)) {
 		cb(ctx)
 	}
 )
@@ -92,7 +89,7 @@ func (loop *EventQueue) Stop() {
 	<-loop.StopAsync()
 }
 
-func (loop *EventQueue) Put(ctx iface.Context, cb func(iface.Context)) error {
+func (loop *EventQueue) Put(ctx worker_pool.Context, cb func(worker_pool.Context)) error {
 
 	select {
 	case loop.queue <- Decorate(ctx, cb, loop.cbWrapper):
@@ -103,6 +100,6 @@ func (loop *EventQueue) Put(ctx iface.Context, cb func(iface.Context)) error {
 	}
 }
 
-func (loop *EventQueue) MustPut(ctx iface.Context, cb func(iface.Context)) {
+func (loop *EventQueue) MustPut(ctx worker_pool.Context, cb func(worker_pool.Context)) {
 	loop.queue <- Decorate(ctx, cb, loop.cbWrapper)
 }

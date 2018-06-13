@@ -5,8 +5,8 @@ import (
 
 	"github.com/MaxnSter/gnet/iface"
 	"github.com/MaxnSter/gnet/logger"
-	"github.com/MaxnSter/gnet/worker"
-	"github.com/MaxnSter/gnet/worker/internal/basic_event_queue"
+	"github.com/MaxnSter/gnet/worker_pool"
+	"github.com/MaxnSter/gnet/worker_pool/internal/basic_event_queue"
 )
 
 const (
@@ -17,7 +17,7 @@ const (
 )
 
 func init() {
-	worker.RegisterWorkerPool(poolName, NewPoolRaceSelf)
+	worker_pool.RegisterWorkerPool(poolName, NewPoolRaceSelf)
 }
 
 //session存在data race现象,并且几乎没有其他session交互的情况
@@ -32,7 +32,7 @@ func (p *poolRaceSelf) TypeName() string {
 	return poolName
 }
 
-func NewPoolRaceSelf() iface.WorkerPool {
+func NewPoolRaceSelf() worker_pool.Pool {
 	return &poolRaceSelf{
 		workers:   make([]*basic_event_queue.EventQueue, workerNum),
 		closeDone: make(chan struct{}),
@@ -40,7 +40,7 @@ func NewPoolRaceSelf() iface.WorkerPool {
 }
 
 func (p *poolRaceSelf) Start() {
-	logger.WithField("name", p.TypeName()).Infoln("worker pool start")
+	logger.WithField("name", p.TypeName()).Infoln("worker_pool pool start")
 	for i := range p.workers {
 		p.workers[i] = basic_event_queue.NewEventQueue(queueSize, true)
 	}
@@ -77,7 +77,7 @@ func (p *poolRaceSelf) StopAsync() (done <-chan struct{}) {
 	return p.closeDone
 }
 
-func (p *poolRaceSelf) Put(ctx iface.Context, cb func(iface.Context)) {
+func (p *poolRaceSelf) Put(ctx worker_pool.Context, cb func(worker_pool.Context)) {
 
 	var w *basic_event_queue.EventQueue
 
@@ -94,7 +94,7 @@ func (p *poolRaceSelf) Put(ctx iface.Context, cb func(iface.Context)) {
 	}
 }
 
-func (p *poolRaceSelf) TryPut(ctx iface.Context, cb func(iface.Context)) bool {
+func (p *poolRaceSelf) TryPut(ctx worker_pool.Context, cb func(worker_pool.Context)) bool {
 
 	if identifier, ok := ctx.(iface.Identifier); !ok {
 		//TODO type error

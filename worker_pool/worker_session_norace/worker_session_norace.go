@@ -6,8 +6,8 @@ import (
 
 	"github.com/MaxnSter/gnet/iface"
 	"github.com/MaxnSter/gnet/logger"
-	"github.com/MaxnSter/gnet/worker"
-	"github.com/MaxnSter/gnet/worker/internal/basic_event_queue"
+	"github.com/MaxnSter/gnet/worker_pool"
+	"github.com/MaxnSter/gnet/worker_pool/internal/basic_event_queue"
 	"github.com/sirupsen/logrus"
 )
 
@@ -18,7 +18,7 @@ const (
 )
 
 func init() {
-	worker.RegisterWorkerPool(poolName, NewPoolNoRace)
+	worker_pool.RegisterWorkerPool(poolName, NewPoolNoRace)
 }
 
 //无data race情况
@@ -48,7 +48,7 @@ func (p *poolNoRace) TypeName() string {
 	return poolName
 }
 
-func NewPoolNoRace() iface.WorkerPool {
+func NewPoolNoRace() worker_pool.Pool {
 	return &poolNoRace{
 		maxGoroutinesAmount:      DefaultMaxGoroutinesAmount,
 		maxGoroutineIdleDuration: DefaultMaxGoroutineIdleDuration,
@@ -61,7 +61,7 @@ func NewPoolNoRace() iface.WorkerPool {
 }
 
 func (p *poolNoRace) Start() {
-	logger.WithField("name", p.TypeName()).Infoln("worker pool start")
+	logger.WithField("name", p.TypeName()).Infoln("worker_pool pool start")
 	go func() {
 		var scratch []*goChan
 		for {
@@ -145,7 +145,7 @@ func (p *poolNoRace) Stop() {
 	<-p.StopAsync()
 }
 
-func (p *poolNoRace) Put(ctx iface.Context, cb func(iface.Context)) {
+func (p *poolNoRace) Put(ctx worker_pool.Context, cb func(worker_pool.Context)) {
 
 	select {
 	case <-p.stopCh:
@@ -162,7 +162,7 @@ func (p *poolNoRace) Put(ctx iface.Context, cb func(iface.Context)) {
 	}
 }
 
-func (p *poolNoRace) TryPut(ctx iface.Context, cb func(iface.Context)) bool {
+func (p *poolNoRace) TryPut(ctx worker_pool.Context, cb func(worker_pool.Context)) bool {
 
 	if ch := p.getCh(); ch != nil {
 		ch.ch <- basic_event_queue.Decorate(ctx, cb, p.cbWrapper)

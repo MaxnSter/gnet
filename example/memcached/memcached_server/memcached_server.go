@@ -13,9 +13,9 @@ import (
 
 	_ "github.com/MaxnSter/gnet/codec/codec_byte"
 	_ "github.com/MaxnSter/gnet/message_pack/pack/pack_line"
-	_ "github.com/MaxnSter/gnet/worker/worker_session_norace"
-	_ "github.com/MaxnSter/gnet/worker/worker_session_race_other"
-	_ "github.com/MaxnSter/gnet/worker/worker_session_race_self"
+	_ "github.com/MaxnSter/gnet/worker_pool/worker_session_norace"
+	_ "github.com/MaxnSter/gnet/worker_pool/worker_session_race_other"
+	_ "github.com/MaxnSter/gnet/worker_pool/worker_session_race_self"
 )
 
 // 记录当前支持的命令以及对应操作

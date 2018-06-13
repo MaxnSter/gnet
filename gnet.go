@@ -8,8 +8,8 @@ import (
 	"github.com/MaxnSter/gnet/message_pack"
 	_ "github.com/MaxnSter/gnet/message_pack/pack/pack_type_length_value"
 	"github.com/MaxnSter/gnet/timer"
-	"github.com/MaxnSter/gnet/worker"
-	_ "github.com/MaxnSter/gnet/worker/worker_session_race_self"
+	"github.com/MaxnSter/gnet/worker_pool"
+	_ "github.com/MaxnSter/gnet/worker_pool/worker_session_race_self"
 )
 
 //TODO unp, http...
@@ -77,7 +77,7 @@ func newNetOption(cbOption *CallBackOption, gnetOption *GnetOption, onMessage if
 
 	netOp := &net.NetOptions{
 		Coder:  codec.MustGetCoder(gnetOption.Coder),
-		Pool:   worker.MustGetWorkerPool(gnetOption.WorkerPool),
+		Pool:   worker_pool.MustGetWorkerPool(gnetOption.WorkerPool),
 		Packer: message_pack.MustGetPacker(gnetOption.Packer),
 		CB:     onMessage,
 

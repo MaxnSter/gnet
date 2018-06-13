@@ -6,7 +6,7 @@ import (
 	"github.com/MaxnSter/gnet/iface"
 	"github.com/MaxnSter/gnet/net"
 	_ "github.com/MaxnSter/gnet/message_pack/pack/pack_length_value"
-	_ "github.com/MaxnSter/gnet/worker/worker_session_race_other"
+	_ "github.com/MaxnSter/gnet/worker_pool/worker_session_race_other"
 )
 
 type chatClient struct {

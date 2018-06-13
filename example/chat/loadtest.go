@@ -11,8 +11,8 @@ import (
 	"github.com/MaxnSter/gnet/iface"
 	"github.com/MaxnSter/gnet/logger"
 	"github.com/MaxnSter/gnet/net"
-	"github.com/MaxnSter/gnet/worker"
-	_ "github.com/MaxnSter/gnet/worker/worker_session_race_other"
+	"github.com/MaxnSter/gnet/worker_pool"
+	_ "github.com/MaxnSter/gnet/worker_pool/worker_session_race_other"
 )
 
 var (
@@ -40,7 +40,7 @@ type chatLoadTest struct {
 
 func (c *chatLoadTest) startLoadTest() {
 	wg := sync.WaitGroup{}
-	pool := worker.MustGetWorkerPool("poolRaceOther")
+	pool := worker_pool.MustGetWorkerPool("poolRaceOther")
 	pool.Start()
 	for i := 0; i < *connections; i++ {
 		wg.Add(1)

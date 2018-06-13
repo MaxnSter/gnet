@@ -7,15 +7,15 @@ import (
 	"time"
 
 	"github.com/MaxnSter/gnet/iface"
-	"github.com/MaxnSter/gnet/worker"
-	_ "github.com/MaxnSter/gnet/worker/worker_session_norace"
+	"github.com/MaxnSter/gnet/worker_pool"
+	_ "github.com/MaxnSter/gnet/worker_pool/worker_session_norace"
 	"github.com/stretchr/testify/assert"
 )
 
 var wPool iface.WorkerPool
 
 func TestNewTimerManager(t *testing.T) {
-	wPool = worker.MustGetWorkerPool("poolNoRace")
+	wPool = worker_pool.MustGetWorkerPool("poolNoRace")
 	wPool.Start()
 
 	tw := NewTimerManager(wPool)
@@ -23,7 +23,7 @@ func TestNewTimerManager(t *testing.T) {
 }
 
 func TestTimerManager_AddTimer(t *testing.T) {
-	wPool = worker.MustGetWorkerPool("poolNoRace")
+	wPool = worker_pool.MustGetWorkerPool("poolNoRace")
 	wPool.Start()
 
 	tw := NewTimerManager(wPool)
@@ -57,7 +57,7 @@ func TestTimerManager_AddTimer(t *testing.T) {
 }
 
 func TestTimerManager_Stop(t *testing.T) {
-	wPool = worker.MustGetWorkerPool("poolNoRace")
+	wPool = worker_pool.MustGetWorkerPool("poolNoRace")
 	wPool.Start()
 
 	tw := NewTimerManager(wPool)

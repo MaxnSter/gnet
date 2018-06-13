@@ -1,6 +1,6 @@
-package iface
+package worker_pool
 
-type WorkerPool interface {
+type Pool interface {
 	Start()
 	Stop()
 	StopAsync() (done <-chan struct{})

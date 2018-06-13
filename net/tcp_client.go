@@ -95,7 +95,7 @@ func (client *TcpClient) Run() {
 	}
 	client.guard.Unlock()
 
-	//start worker pool
+	//start worker_pool pool
 	client.netOp.Pool.Start()
 
 	//start timer
@@ -122,7 +122,7 @@ func (client *TcpClient) Run() {
 	client.wg.Wait()
 	logger.Infoln("session closed")
 
-	//close worker pool wait close Done
+	//close worker_pool pool wait close Done
 	client.netOp.Pool.Stop()
 
 	//close timer and wait for close Done
