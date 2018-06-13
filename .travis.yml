@@ -1,9 +1,6 @@
 language:
  - go
 
-go_import_path:
- - github.com/Maxnster/gnet
-
 install:
  - go get github.com/stretchr/testify/assert
  - go get github.com/vmihailenco/msgpack
