@@ -14,18 +14,17 @@ import (
 
 type Module interface {
 	SetPool(pool string)
-	Pool() worker_pool.Pool
-
 	SetCoder(coder string)
-	Coder() codec.Coder
-
 	SetPacker(packet string)
+
+	Pool() worker_pool.Pool
+	Coder() codec.Coder
 	Packer() message_pack.Packer
 
 	SetRdPlugin(plugins ...plugin.PluginBeforeRead)
-	RdPlugins() []plugin.PluginBeforeRead
-
 	SetWrPlugin(plugins ...plugin.PluginBeforeWrite)
+
+	RdPlugins() []plugin.PluginBeforeRead
 	WrPlugins() []plugin.PluginBeforeWrite
 
 	SetTimer(pool worker_pool.Pool)

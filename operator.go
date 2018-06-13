@@ -17,12 +17,11 @@ type Operator interface {
 	Write(writer io.Writer, msg interface{}, module Module) error
 
 	SetOnMessage(onMessage OnMessage)
-	GetOnMessage() OnMessage
-
 	SetOnConnected(onConnected OnConnected)
-	GetOnConnected() OnConnected
-
 	SetOnClose(onClose OnClose)
+
+	GetOnMessage() OnMessage
+	GetOnConnected() OnConnected
 	GetOnClose() OnClose
 }
 
