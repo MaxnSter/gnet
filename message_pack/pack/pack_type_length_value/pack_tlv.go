@@ -7,8 +7,8 @@ import (
 
 	"github.com/MaxnSter/gnet/codec"
 	"github.com/MaxnSter/gnet/iface"
-	"github.com/MaxnSter/gnet/message_pack/message_meta"
 	"github.com/MaxnSter/gnet/message_pack"
+	"github.com/MaxnSter/gnet/message_pack/message_meta"
 	"github.com/MaxnSter/gnet/util"
 )
 
@@ -109,7 +109,7 @@ func (p *tlvPacker) Pack(writer io.Writer, c codec.Coder, msg interface{}) error
 	binary.BigEndian.PutUint32(pack[lengthBytes:], uint32(msgId))
 
 	// put value([]byte after encode)
-	copy(pack[(lengthBytes + typeBytes):], buf)
+	copy(pack[(lengthBytes+typeBytes):], buf)
 
 	// 一直写
 	if err := util.WriteFull(writer, pack); err != nil {

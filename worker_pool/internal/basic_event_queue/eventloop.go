@@ -5,17 +5,18 @@ import (
 	"runtime/debug"
 	"sync"
 
+	"github.com/MaxnSter/gnet/gnet_context"
 	"github.com/MaxnSter/gnet/logger"
-	"github.com/MaxnSter/gnet/worker_pool"
 )
 
-type CallBackWrapper func(ctx worker_pool.Context, cb func(worker_pool.Context))
+type CallBackWrapper func(ctx gnet_context.Context, cb func(gnet_context.Context))
 
-func Decorate(usrCtx worker_pool.Context, usrCb func(worker_pool.Context), wrapper CallBackWrapper) func() { return func() { wrapper(usrCtx, usrCb) }
+func Decorate(usrCtx gnet_context.Context, usrCb func(gnet_context.Context), wrapper CallBackWrapper) func() {
+	return func() { wrapper(usrCtx, usrCb) }
 }
 
 var (
-	SafeCallBack = func(ctx worker_pool.Context, cb func(worker_pool.Context)) {
+	SafeCallBack = func(ctx gnet_context.Context, cb func(gnet_context.Context)) {
 		defer func() {
 			if r := recover(); r != nil {
 				// TODO error handing
@@ -27,7 +28,7 @@ var (
 		cb(ctx)
 	}
 
-	UnSafeCallBack = func(ctx worker_pool.Context, cb func(worker_pool.Context)) {
+	UnSafeCallBack = func(ctx gnet_context.Context, cb func(gnet_context.Context)) {
 		cb(ctx)
 	}
 )
@@ -89,7 +90,7 @@ func (loop *EventQueue) Stop() {
 	<-loop.StopAsync()
 }
 
-func (loop *EventQueue) Put(ctx worker_pool.Context, cb func(worker_pool.Context)) error {
+func (loop *EventQueue) Put(ctx gnet_context.Context, cb func(gnet_context.Context)) error {
 
 	select {
 	case loop.queue <- Decorate(ctx, cb, loop.cbWrapper):
@@ -100,6 +101,6 @@ func (loop *EventQueue) Put(ctx worker_pool.Context, cb func(worker_pool.Context
 	}
 }
 
-func (loop *EventQueue) MustPut(ctx worker_pool.Context, cb func(worker_pool.Context)) {
+func (loop *EventQueue) MustPut(ctx gnet_context.Context, cb func(gnet_context.Context)) {
 	loop.queue <- Decorate(ctx, cb, loop.cbWrapper)
 }

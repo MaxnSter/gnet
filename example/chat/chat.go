@@ -13,7 +13,6 @@ import (
 	"github.com/MaxnSter/gnet/util"
 )
 
-
 func main() {
 	addr := flag.String("addr", ":2007", "server address")
 	flag.Parse()

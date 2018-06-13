@@ -1,5 +1,4 @@
-package worker_pool
+package gnet_context
 
 type Context interface {
-
 }

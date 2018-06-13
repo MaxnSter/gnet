@@ -6,7 +6,6 @@ var (
 	metas = map[uint32]*MessageMeta{}
 )
 
-
 func RegisterMsgMeta(m *MessageMeta) {
 	if _, ok := metas[m.ID]; ok {
 		panic(fmt.Sprintf("dup register message_meta meta, id :%d", m.ID))

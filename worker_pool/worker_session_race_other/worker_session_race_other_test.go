@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/MaxnSter/gnet/iface"
+	"github.com/MaxnSter/gnet/gnet_context"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -40,7 +40,7 @@ func TestNewPoolRaceOther(t *testing.T) {
 	}
 
 	wg := sync.WaitGroup{}
-	fTs := func(_ iface.Context) {
+	fTs := func(_ gnet_context.Context) {
 
 		if ts.race != nil {
 			*ts.race = 1
@@ -50,7 +50,7 @@ func TestNewPoolRaceOther(t *testing.T) {
 		wg.Done()
 	}
 
-	fTs1 := func(_ iface.Context) {
+	fTs1 := func(_ gnet_context.Context) {
 
 		if ts1.race != nil {
 			time.Sleep(time.Millisecond)
@@ -99,7 +99,7 @@ func BenchmarkNewPoolRaceOther(b *testing.B) {
 	}
 
 	wg := sync.WaitGroup{}
-	fTs := func(_ iface.Context) {
+	fTs := func(_ gnet_context.Context) {
 
 		if ts.race != nil {
 			*ts.race = 1
@@ -109,7 +109,7 @@ func BenchmarkNewPoolRaceOther(b *testing.B) {
 		wg.Done()
 	}
 
-	fTs1 := func(_ iface.Context) {
+	fTs1 := func(_ gnet_context.Context) {
 
 		if ts1.race != nil {
 			time.Sleep(time.Millisecond)
@@ -150,7 +150,7 @@ func TestPoolRaceOther_Stop(t *testing.T) {
 
 	for i := 0; i < 5; i++ {
 		wg.Add(1)
-		q.Put(nil, func(_ iface.Context) {
+		q.Put(nil, func(_ gnet_context.Context) {
 			for i := 0; i < math.MaxUint8; i++ {
 			}
 			wg.Done()
@@ -173,7 +173,7 @@ func TestPoolRaceOther_Stop2(t *testing.T) {
 
 	for i := 0; i < 5; i++ {
 		wg.Add(1)
-		q.Put(nil, func(_ iface.Context) {
+		q.Put(nil, func(_ gnet_context.Context) {
 			for i := 0; i < math.MaxInt8; i++ {
 			}
 			wg.Done()

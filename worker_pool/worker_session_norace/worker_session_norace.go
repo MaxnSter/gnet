@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/MaxnSter/gnet/iface"
+	"github.com/MaxnSter/gnet/gnet_context"
 	"github.com/MaxnSter/gnet/logger"
 	"github.com/MaxnSter/gnet/worker_pool"
 	"github.com/MaxnSter/gnet/worker_pool/internal/basic_event_queue"
@@ -145,7 +145,7 @@ func (p *poolNoRace) Stop() {
 	<-p.StopAsync()
 }
 
-func (p *poolNoRace) Put(ctx worker_pool.Context, cb func(worker_pool.Context)) {
+func (p *poolNoRace) Put(ctx gnet_context.Context, cb func(gnet_context.Context)) {
 
 	select {
 	case <-p.stopCh:
@@ -162,7 +162,7 @@ func (p *poolNoRace) Put(ctx worker_pool.Context, cb func(worker_pool.Context)) 
 	}
 }
 
-func (p *poolNoRace) TryPut(ctx worker_pool.Context, cb func(worker_pool.Context)) bool {
+func (p *poolNoRace) TryPut(ctx gnet_context.Context, cb func(gnet_context.Context)) bool {
 
 	if ch := p.getCh(); ch != nil {
 		ch.ch <- basic_event_queue.Decorate(ctx, cb, p.cbWrapper)

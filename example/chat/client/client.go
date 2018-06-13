@@ -4,8 +4,8 @@ import (
 	"github.com/MaxnSter/gnet"
 	_ "github.com/MaxnSter/gnet/codec/codec_byte"
 	"github.com/MaxnSter/gnet/iface"
-	"github.com/MaxnSter/gnet/net"
 	_ "github.com/MaxnSter/gnet/message_pack/pack/pack_length_value"
+	"github.com/MaxnSter/gnet/net"
 	_ "github.com/MaxnSter/gnet/worker_pool/worker_session_race_other"
 )
 
@@ -30,14 +30,14 @@ func NewChatClient(addr string, connHook func(*net.TcpSession), msgHook func(ifa
 	return c
 }
 
-func NewChatClientWithPool(addr string,connHook func(*net.TcpSession), msgHook func(iface.Event),
+func NewChatClientWithPool(addr string, connHook func(*net.TcpSession), msgHook func(iface.Event),
 	pool iface.WorkerPool) *chatClient {
 
 	c := &chatClient{addr: addr, connectedHook: connHook, onMessageHook: msgHook}
 	// build a tcp client
 	option := &gnet.GnetOption{Coder: "byte", Packer: "lv", WorkerPool: "poolRaceOther"}
 	callback := gnet.NewCallBackOption(gnet.WithOnConnectCB(c.onConnect))
-	c.TcpClient = gnet.NewClientSharePool(c.addr, callback, option, pool, c.onMessage )
+	c.TcpClient = gnet.NewClientSharePool(c.addr, callback, option, pool, c.onMessage)
 
 	return c
 }

@@ -3,6 +3,7 @@ package worker_session_race_self
 import (
 	"math/rand"
 
+	"github.com/MaxnSter/gnet/gnet_context"
 	"github.com/MaxnSter/gnet/iface"
 	"github.com/MaxnSter/gnet/logger"
 	"github.com/MaxnSter/gnet/worker_pool"
@@ -77,7 +78,7 @@ func (p *poolRaceSelf) StopAsync() (done <-chan struct{}) {
 	return p.closeDone
 }
 
-func (p *poolRaceSelf) Put(ctx worker_pool.Context, cb func(worker_pool.Context)) {
+func (p *poolRaceSelf) Put(ctx gnet_context.Context, cb func(gnet_context.Context)) {
 
 	var w *basic_event_queue.EventQueue
 
@@ -94,7 +95,7 @@ func (p *poolRaceSelf) Put(ctx worker_pool.Context, cb func(worker_pool.Context)
 	}
 }
 
-func (p *poolRaceSelf) TryPut(ctx worker_pool.Context, cb func(worker_pool.Context)) bool {
+func (p *poolRaceSelf) TryPut(ctx gnet_context.Context, cb func(gnet_context.Context)) bool {
 
 	if identifier, ok := ctx.(iface.Identifier); !ok {
 		//TODO type error
