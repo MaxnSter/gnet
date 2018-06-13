@@ -11,8 +11,8 @@ install:
  - go get github.com/sirupsen/logrus
 
 go:
- - 1.10.x
+ - 1.10
 
 script:
- - cd $GOPATH/src/github.com/MaxnSter/gnet/ && go test ./...
+ - go test ./...
 
