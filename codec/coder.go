@@ -2,7 +2,6 @@ package codec
 
 //the coder
 type Coder interface {
-
 	//encode v to []byte, err != nil if not succeed
 	Encode(v interface{}) (data []byte, err error)
 
