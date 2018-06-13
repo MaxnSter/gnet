@@ -12,7 +12,7 @@ func init() {
 	gnetLogger = logrus.New()
 
 	//TODO logge config
-	gnetLogger.SetLevel(logrus.InfoLevel)
+	gnetLogger.SetLevel(logrus.DebugLevel)
 	gnetLogger.Out = os.Stdout
 }
 

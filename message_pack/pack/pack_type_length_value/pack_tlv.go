@@ -6,7 +6,6 @@ import (
 	"io"
 
 	"github.com/MaxnSter/gnet/codec"
-	"github.com/MaxnSter/gnet/iface"
 	"github.com/MaxnSter/gnet/message_pack"
 	"github.com/MaxnSter/gnet/message_pack/message_meta"
 	"github.com/MaxnSter/gnet/util"
@@ -83,7 +82,7 @@ func (p *tlvPacker) Unpack(reader io.Reader, c codec.Coder, meta *message_meta.M
 func (p *tlvPacker) Pack(writer io.Writer, c codec.Coder, msg interface{}) error {
 
 	//获取该对应的messageId
-	msgId := msg.(iface.Message).GetId()
+	msgId := msg.(message_meta.MetaIdentifier).GetId()
 
 	//对应上图中的value
 	var buf []byte

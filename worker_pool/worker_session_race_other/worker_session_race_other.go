@@ -1,7 +1,7 @@
 package worker_session_race_other
 
 import (
-	"github.com/MaxnSter/gnet/gnet_context"
+	"github.com/MaxnSter/gnet/iface"
 	"github.com/MaxnSter/gnet/logger"
 	"github.com/MaxnSter/gnet/worker_pool"
 	"github.com/MaxnSter/gnet/worker_pool/internal/basic_event_queue"
@@ -48,14 +48,14 @@ func (p *poolRaceOther) Stop() {
 	logger.WithField("name", p.TypeName()).Infoln("pool stopped...")
 }
 
-func (p *poolRaceOther) Put(ctx gnet_context.Context, cb func(gnet_context.Context)) {
+func (p *poolRaceOther) Put(ctx iface.Context, cb func(iface.Context)) {
 	if err := p.queue.Put(ctx, cb); err != nil {
 		//logger.WithField("name", p.TypeName()).Warningln("pool size limit")
 		p.queue.MustPut(ctx, cb)
 	}
 }
 
-func (p *poolRaceOther) TryPut(ctx gnet_context.Context, cb func(gnet_context.Context)) bool {
+func (p *poolRaceOther) TryPut(ctx iface.Context, cb func(iface.Context)) bool {
 
 	if err := p.queue.Put(ctx, cb); err != nil {
 		return false

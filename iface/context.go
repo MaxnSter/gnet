@@ -1,4 +1,4 @@
-package gnet_context
+package iface
 
 type Context interface {
 }

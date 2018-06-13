@@ -10,7 +10,7 @@ import (
 )
 
 func TestEncodeAndDecode(t *testing.T) {
-	coder := codec.MustGetCoder("protoBuf")
+	coder := codec.MustGetCoder("protobuf")
 
 	data, err := coder.Encode(&Info{Id: 1, Msg: "proto"})
 	assert.Nil(t, err, err)

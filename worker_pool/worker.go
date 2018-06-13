@@ -1,14 +1,14 @@
 package worker_pool
 
-import "github.com/MaxnSter/gnet/gnet_context"
+import "github.com/MaxnSter/gnet/iface"
 
 type Pool interface {
 	Start()
 	Stop()
 	StopAsync() (done <-chan struct{})
 
-	Put(ctx gnet_context.Context, cb func(gnet_context.Context))
-	TryPut(ctx gnet_context.Context, cb func(ctx gnet_context.Context)) bool
+	Put(ctx iface.Context, cb func(iface.Context))
+	TryPut(ctx iface.Context, cb func(ctx iface.Context)) bool
 
 	TypeName() string
 }

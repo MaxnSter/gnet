@@ -1,7 +1,5 @@
 package worker_pool
 
-import "github.com/MaxnSter/gnet/iface"
-
 type workerPoolCreator func() Pool
 
 var (

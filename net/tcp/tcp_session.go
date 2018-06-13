@@ -1,4 +1,4 @@
-package net
+package tcp
 
 import (
 	"bufio"
@@ -6,17 +6,17 @@ import (
 	"net"
 	"runtime/debug"
 	"sync"
-	"sync/atomic"
 	"time"
 
-	"github.com/MaxnSter/gnet/iface"
+	"github.com/MaxnSter/gnet"
 	"github.com/MaxnSter/gnet/logger"
+	"github.com/MaxnSter/gnet/timer"
 	"github.com/MaxnSter/gnet/util"
 	"github.com/sirupsen/logrus"
 )
 
 const (
-	//TODO high water mark and small water mark
+	//TODO high water mark
 	//发送缓冲区
 	sendBuf = 128
 
@@ -24,65 +24,53 @@ const (
 	rdTimeout = time.Second * 5
 )
 
-type sessionStatus = int64
-
-const (
-	ready sessionStatus = iota
-	start
-	stop
-)
-
 var (
-	_ iface.NetSession = (*TcpSession)(nil)
+	_ gnet.NetSession = (*tcpSession)(nil)
 )
 
-type TcpSession struct {
-	id      int64
-	manager *TcpServer
-
-	netOp *NetOptions
-	ctx   sync.Map
-
-	status  sessionStatus
-	guard   *sync.Mutex
-	started bool
-	closed  bool
-
+type tcpSession struct {
+	id       int64
+	ctx      sync.Map
 	raw      *net.TCPConn
 	connWrap *bufio.ReadWriter
 	sendQue  *util.MsgQueue
+	status   *status
 
 	wg          *sync.WaitGroup
 	closeCh     chan struct{}
-	onCloseDone func(*TcpSession)
+	onCloseDone func(*tcpSession)
+
+	module   gnet.Module
+	operator gnet.Operator
 }
 
-func NewTcpSession(id int64, netOp *NetOptions, conn *net.TCPConn, onCloseDone func(*TcpSession)) *TcpSession {
-	s := &TcpSession{
+func NewTcpSession(id int64, conn *net.TCPConn, m gnet.Module, o gnet.Operator, onCloseDone func(*tcpSession)) *tcpSession {
+	s := &tcpSession{
 		id:          id,
-		netOp:       netOp,
 		raw:         conn,
 		onCloseDone: onCloseDone,
 		closeCh:     make(chan struct{}),
+		module:      m,
+		operator:    o,
 		sendQue:     util.NewMsgQueueWithCap(sendBuf),
 		wg:          &sync.WaitGroup{},
-		guard:       &sync.Mutex{},
+		status:      &status{},
 	}
 
 	s.connWrap = bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
 	return s
 }
 
-func (s *TcpSession) SetManager(m *TcpServer) {
-	s.manager = m
+func (s *tcpSession) Raw() io.ReadWriter {
+	return s.raw
 }
 
-func (s *TcpSession) ID() int64 {
+func (s *tcpSession) ID() int64 {
 	return s.id
 }
 
-func (s *TcpSession) Start() {
-	if !atomic.CompareAndSwapInt64(&s.status, ready, start) {
+func (s *tcpSession) Start() {
+	if !s.status.start() {
 		return
 	}
 	logger.WithField("sessionId", s.id).Debugln("session start")
@@ -93,9 +81,9 @@ func (s *TcpSession) Start() {
 	go s.writeLoop()
 
 	//callback to user
-	if s.netOp.OnConnected != nil {
+	if s.operator.GetOnConnected() != nil {
 		logger.WithField("sessionId", s.id).Debugln("session onConnected, callback to user")
-		s.netOp.OnConnected(s)
+		s.operator.GetOnConnected()(s)
 	}
 
 }
@@ -106,8 +94,8 @@ func (s *TcpSession) Start() {
 // 流程如下->
 // sender:shutdown(wr) -> receiver:read(0) -> receiver:send over and close socket ->
 // sender:read(0) -> sender:close socket -> socket正常关闭
-func (s *TcpSession) Stop() {
-	if !atomic.CompareAndSwapInt64(&s.status, start, stop) {
+func (s *tcpSession) Stop() {
+	if !s.status.stop() {
 		return
 	}
 
@@ -115,9 +103,9 @@ func (s *TcpSession) Stop() {
 
 		logger.WithField("sessionId", s.id).Debugln("session stopping...")
 
-		if s.netOp.OnSessionClose != nil {
+		if s.operator.GetOnClose() != nil {
 			logger.WithField("sessionId", s.id).Debugln("session onClose, callback to user")
-			s.netOp.OnSessionClose(s)
+			s.operator.GetOnClose()(s)
 		}
 
 		//close readLoop
@@ -143,7 +131,7 @@ func (s *TcpSession) Stop() {
 	}()
 }
 
-func (s *TcpSession) readLoop() {
+func (s *tcpSession) readLoop() {
 	defer func() {
 		if r := recover(); r != nil {
 			logger.WithFields(logrus.Fields{
@@ -166,7 +154,7 @@ func (s *TcpSession) readLoop() {
 		default:
 		}
 
-		msg, err := s.netOp.ReadMessage(s.connWrap)
+		msg, err := s.operator.Read(s.connWrap, s.module)
 		if err != nil {
 
 			//remote close socket
@@ -188,11 +176,11 @@ func (s *TcpSession) readLoop() {
 			panic(err)
 		}
 
-		s.netOp.PostEvent(&iface.MessageEvent{EventSes: s, Msg: msg})
+		s.operator.PostEvent(&gnet.EventWrapper{EventSession: s, Msg: msg}, s.module)
 	}
 }
 
-func (s *TcpSession) writeLoop() {
+func (s *tcpSession) writeLoop() {
 	defer func() {
 		if r := recover(); r != nil {
 			logger.WithFields(logrus.Fields{
@@ -224,12 +212,11 @@ func (s *TcpSession) writeLoop() {
 
 		for _, msg := range msgs {
 			if msg == nil {
-				//TODO error handing?
 				s.connWrap.Flush()
 				return
 			}
 
-			err = s.netOp.WriteMessage(s.connWrap, msg)
+			err = s.operator.Write(s.connWrap, msg, s.module)
 			if err != nil {
 				panic(err)
 			}
@@ -244,37 +231,49 @@ func (s *TcpSession) writeLoop() {
 
 }
 
-func (s *TcpSession) Send(msg interface{}) {
-
-	select {
-	case <-s.closeCh:
-		return
-	default:
-	}
-
+func (s *tcpSession) Send(msg interface{}) {
+	//select {
+	//case <-s.closeCh:
+	//	return
+	//default:
+	//}
 	s.sendQue.Put(msg)
 }
 
-func (s *TcpSession) LoadCtx(k interface{}) (v interface{}, ok bool) {
+func (s *tcpSession) LoadCtx(k interface{}) (v interface{}, ok bool) {
 	return s.ctx.Load(k)
 }
 
-func (s *TcpSession) StoreCtx(k, v interface{}) {
+func (s *tcpSession) StoreCtx(k, v interface{}) {
 	s.ctx.Store(k, v)
 }
 
-func (s *TcpSession) RunAt(runAt time.Time, cb iface.OnTimeOut) (timerId int64) {
-	return s.netOp.Timer.AddTimer(runAt, 0, s, cb)
+func (s *tcpSession) RunAt(runAt time.Time, cb timer.OnTimeOut) (timerId int64) {
+	if s.module.Timer() == nil {
+		return -1
+	}
+
+	return s.module.Timer().AddTimer(runAt, 0, s, cb)
 }
 
-func (s *TcpSession) RunAfter(start time.Time, after time.Duration, cb iface.OnTimeOut) (timerId int64) {
-	return s.netOp.Timer.AddTimer(start.Add(after), 0, s, cb)
+func (s *tcpSession) RunAfter(after time.Duration, cb timer.OnTimeOut) (timerId int64) {
+	if s.module.Timer() == nil {
+		return -1
+	}
+	return s.module.Timer().AddTimer(time.Now().Add(after), 0, s, cb)
 }
 
-func (s *TcpSession) RunEvery(runAt time.Time, interval time.Duration, cb iface.OnTimeOut) (timerId int64) {
-	return s.netOp.Timer.AddTimer(runAt, interval, s, cb)
+func (s *tcpSession) RunEvery(runAt time.Time, interval time.Duration, cb timer.OnTimeOut) (timerId int64) {
+	if s.module.Timer() == nil {
+		return -1
+	}
+	return s.module.Timer().AddTimer(runAt, interval, s, cb)
 }
 
-func (s *TcpSession) CancelTimer(timerId int64) {
-	s.netOp.Timer.CancelTimer(timerId)
+func (s *tcpSession) CancelTimer(timerId int64) {
+	if s.module.Timer() == nil {
+		return
+	}
+
+	s.module.Timer().CancelTimer(timerId)
 }

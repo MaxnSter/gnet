@@ -4,11 +4,10 @@ import (
 	"encoding/json"
 
 	"github.com/MaxnSter/gnet/codec"
-	"github.com/MaxnSter/gnet/iface"
 )
 
 var (
-	_ iface.Coder = (*coderJson)(nil)
+	_ codec.Coder = (*coderJson)(nil)
 )
 
 const (

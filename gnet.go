@@ -1,160 +1,51 @@
 package gnet
 
-import (
-	"github.com/MaxnSter/gnet/codec"
-	_ "github.com/MaxnSter/gnet/codec/codec_msgpack"
-	"github.com/MaxnSter/gnet/iface"
-	"github.com/MaxnSter/gnet/message_pack"
-	_ "github.com/MaxnSter/gnet/message_pack/pack/pack_type_length_value"
-	"github.com/MaxnSter/gnet/net"
-	"github.com/MaxnSter/gnet/timer"
-	"github.com/MaxnSter/gnet/worker_pool"
-	_ "github.com/MaxnSter/gnet/worker_pool/worker_session_race_self"
+var (
+	netServerCreator = map[string]func(string, Module, Operator) NetServer{}
+	netClientCreator = map[string]func(string, Module, Operator) NetClient{}
 )
 
-//TODO unp, http...
-func NewServer(addr string,
-	cbOption *CallBackOption,
-	gnetOption *GnetOption,
-	onMessage iface.OnMessageFunc) *net.TcpServer {
-
-	netOp := newNetOption(cbOption, gnetOption, onMessage)
-	return net.NewTcpServer(addr, "", netOp)
-}
-
-func NewServerSharePool(addr string,
-	cbOption *CallBackOption,
-	gnetOption *GnetOption,
-	sharePool iface.WorkerPool,
-	onMessage iface.OnMessageFunc) *net.TcpServer {
-
-	netOp := &net.NetOptions{
-		Coder:  codec.MustGetCoder(gnetOption.Coder),
-		Pool:   sharePool,
-		Packer: message_pack.MustGetPacker(gnetOption.Packer),
-		CB:     onMessage,
-
-		OnConnected:    cbOption.OnConnect,
-		OnSessionClose: cbOption.OnSessionClose,
-		OnServerClosed: cbOption.OnServerClosed,
-	}
-	netOp.Timer = timer.NewTimerManager(netOp.Pool)
-
-	return net.NewTcpServer(addr, "", netOp)
-}
-
-func NewClient(addr string,
-	cbOption *CallBackOption,
-	gnetOption *GnetOption,
-	onMessage iface.OnMessageFunc) *net.TcpClient {
-
-	netOp := newNetOption(cbOption, gnetOption, onMessage)
-	return net.NewTcpClient(addr, netOp)
-}
-
-func NewClientSharePool(addr string,
-	cbOption *CallBackOption,
-	gnetOption *GnetOption,
-	sharePool iface.WorkerPool,
-	onMessage iface.OnMessageFunc) *net.TcpClient {
-
-	netOp := &net.NetOptions{
-		Coder:  codec.MustGetCoder(gnetOption.Coder),
-		Pool:   sharePool,
-		Packer: message_pack.MustGetPacker(gnetOption.Packer),
-		CB:     onMessage,
-
-		OnConnected:    cbOption.OnConnect,
-		OnSessionClose: cbOption.OnSessionClose,
-		OnServerClosed: cbOption.OnServerClosed,
-	}
-	netOp.Timer = timer.NewTimerManager(netOp.Pool)
-
-	return net.NewTcpClient(addr, netOp)
-}
-
-func newNetOption(cbOption *CallBackOption, gnetOption *GnetOption, onMessage iface.OnMessage) *net.NetOptions {
-
-	netOp := &net.NetOptions{
-		Coder:  codec.MustGetCoder(gnetOption.Coder),
-		Pool:   worker_pool.MustGetWorkerPool(gnetOption.WorkerPool),
-		Packer: message_pack.MustGetPacker(gnetOption.Packer),
-		CB:     onMessage,
-
-		OnConnected:    cbOption.OnConnect,
-		OnSessionClose: cbOption.OnSessionClose,
-		OnServerClosed: cbOption.OnServerClosed,
-	}
-	netOp.Timer = timer.NewTimerManager(netOp.Pool)
-
-	return netOp
-}
-
-var defaultCbOption = &CallBackOption{}
-var defaultGnetOption = &GnetOption{Packer: "tlv", Coder: "msgpack", WorkerPool: "poolRaceSelf"}
-
-type CallBackOption struct {
-	OnConnect      net.OnConnectedFunc
-	OnSessionClose net.OnSessionCloseFunc
-	OnServerClosed net.OnServerClosedFunc
-}
-
-func WithOnConnectCB(onConnect net.OnConnectedFunc) func(*CallBackOption) {
-	return func(o *CallBackOption) {
-		o.OnConnect = onConnect
+func RegisterServerCreator(creatorName string, f func(string, Module, Operator) NetServer) {
+	if _, ok := netServerCreator[creatorName]; ok {
+		panic("duplicate server creator register:" + creatorName)
+	} else {
+		netServerCreator[creatorName] = f
 	}
 }
 
-func WithOnSessionClose(onClose net.OnSessionCloseFunc) func(*CallBackOption) {
-	return func(o *CallBackOption) {
-		o.OnSessionClose = onClose
+func RegisterClientCreator(creatorName string, f func(string, Module, Operator) NetClient) {
+	if _, ok := netClientCreator[creatorName]; ok {
+		panic("duplicate client creator register:" + creatorName)
+	} else {
+		netClientCreator[creatorName] = f
 	}
 }
 
-func WithOnServerClosed(onClosed net.OnServerClosedFunc) func(*CallBackOption) {
-	return func(o *CallBackOption) {
-		o.OnServerClosed = onClosed
+// only support tcp for now
+func NewNetServer(network, name string, module Module, operator Operator) NetServer {
+	checkValid(module, operator)
+	if creator, ok := netServerCreator[network]; !ok {
+		panic("network:" + network + " not register")
+	} else {
+		return creator(name, module, operator)
 	}
 }
 
-func NewCallBackOption(options ...func(*CallBackOption)) *CallBackOption {
-	o := *defaultCbOption
-	for _, option := range options {
-		option(&o)
-	}
-
-	return &o
-}
-
-type GnetOption struct {
-	Packer     string
-	Coder      string
-	WorkerPool string
-}
-
-func NewGnetOption(options ...func(*GnetOption)) *GnetOption {
-	o := *defaultGnetOption
-	for _, option := range options {
-		option(&o)
-	}
-
-	return &o
-}
-
-func WithPacker(packer string) func(*GnetOption) {
-	return func(o *GnetOption) {
-		o.Packer = packer
+func NewNetClient(network, name string, module Module, operator Operator) NetClient {
+	checkValid(module, operator)
+	if creator, ok := netClientCreator[network]; !ok {
+		panic("network:" + network + " not register")
+	} else {
+		return creator(name, module, operator)
 	}
 }
 
-func WithCoder(coder string) func(*GnetOption) {
-	return func(o *GnetOption) {
-		o.Coder = coder
+func checkValid(m Module, o Operator) {
+	if m.Coder() == nil || m.Packer() == nil {
+		panic("coder and pack can not be nil")
 	}
-}
 
-func WithWorkerPool(workerPool string) func(*GnetOption) {
-	return func(o *GnetOption) {
-		o.WorkerPool = workerPool
+	if o.GetOnMessage() == nil {
+		panic("onMessage can not be nil")
 	}
 }

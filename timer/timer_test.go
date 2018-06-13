@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/MaxnSter/gnet/gnet_context"
 	"github.com/MaxnSter/gnet/iface"
 	"github.com/MaxnSter/gnet/worker_pool"
 	_ "github.com/MaxnSter/gnet/worker_pool/worker_session_norace"
@@ -35,7 +34,7 @@ func TestTimerManager_AddTimer(t *testing.T) {
 	timerIds := make([]int64, 0)
 
 	for i := 0; i < 10000; i++ {
-		id := tw.AddTimer(time.Now(), time.Second, nil, func(i time.Time, ctx gnet_context.Context) {
+		id := tw.AddTimer(time.Now(), time.Second, nil, func(i time.Time, ctx iface.Context) {
 			wg.Add(1)
 			for i := 0; i < math.MaxInt16; i++ {
 			}
@@ -46,7 +45,7 @@ func TestTimerManager_AddTimer(t *testing.T) {
 
 	var stopId int64
 	wg.Add(1)
-	stopId = tw.AddTimer(time.Now().Add(5*time.Second), 0, nil, func(i time.Time, ctx gnet_context.Context) {
+	stopId = tw.AddTimer(time.Now().Add(5*time.Second), 0, nil, func(i time.Time, ctx iface.Context) {
 		tw.CancelTimer(stopId)
 		for _, id := range timerIds {
 			tw.CancelTimer(id)
@@ -68,7 +67,7 @@ func TestTimerManager_Stop(t *testing.T) {
 	wg := sync.WaitGroup{}
 
 	for i := 0; i < 10000; i++ {
-		tw.AddTimer(time.Now(), time.Second, nil, func(i time.Time, ctx gnet_context.Context) {
+		tw.AddTimer(time.Now(), time.Second, nil, func(i time.Time, ctx iface.Context) {
 			wg.Add(1)
 			for i := 0; i < math.MaxInt16; i++ {
 			}
@@ -78,7 +77,7 @@ func TestTimerManager_Stop(t *testing.T) {
 
 	var stopId int64
 	wg.Add(1)
-	stopId = tw.AddTimer(time.Now().Add(5*time.Second), 0, nil, func(i time.Time, ctx gnet_context.Context) {
+	stopId = tw.AddTimer(time.Now().Add(5*time.Second), 0, nil, func(i time.Time, ctx iface.Context) {
 		tw.CancelTimer(stopId)
 		tw.Stop()
 		wg.Done()

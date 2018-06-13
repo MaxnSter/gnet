@@ -2,7 +2,6 @@ package codec_protobuf
 
 import (
 	"github.com/MaxnSter/gnet/codec"
-	"github.com/MaxnSter/gnet/iface"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 )
@@ -13,7 +12,7 @@ const (
 )
 
 var (
-	_ iface.Coder = (*coderProtobuf)(nil)
+	_ codec.Coder = (*coderProtobuf)(nil)
 )
 
 // coderProtobuf uses protobuf marshaller and unmarshaller

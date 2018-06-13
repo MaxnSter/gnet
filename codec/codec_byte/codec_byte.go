@@ -5,7 +5,6 @@ import (
 	"reflect"
 
 	"github.com/MaxnSter/gnet/codec"
-	"github.com/MaxnSter/gnet/iface"
 )
 
 const (
@@ -14,7 +13,7 @@ const (
 )
 
 var (
-	_ iface.Coder = (*coderByte)(nil)
+	_ codec.Coder = (*coderByte)(nil)
 )
 
 // coderByte users raw slice of bytes

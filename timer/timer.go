@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/MaxnSter/gnet/gnet_context"
+	"github.com/MaxnSter/gnet/iface"
 	"github.com/MaxnSter/gnet/logger"
 	"github.com/MaxnSter/gnet/util"
 	"github.com/MaxnSter/gnet/worker_pool"
@@ -23,7 +23,7 @@ type timerEntry struct {
 	timerId  int64         //返回给用户的id
 	index    int           //heap内部维护的index
 
-	ctx gnet_context.Context
+	ctx iface.Context
 	cb  OnTimeOut // callback
 }
 
@@ -72,6 +72,13 @@ const (
 
 var (
 	_ TimerManager = (*timerManager)(nil)
+
+	ePool = &entryPool{
+		p: sync.Pool{
+			New: func() interface{} {
+				return new(timerEntry)
+			}},
+	}
 )
 
 type entryPool struct {
@@ -93,8 +100,6 @@ type timerManager struct {
 	resumeCh    chan struct{}
 	closeCh     chan struct{}
 	closeDoneCh chan struct{}
-
-	entryPool sync.Pool
 }
 
 //指定一个worker entryPool,用于负责调用caller传入的callback,返回timerManager
@@ -111,19 +116,16 @@ func newTimerManager(pool worker_pool.Pool) *timerManager {
 		closeDoneCh: make(chan struct{}),
 	}
 
-	tm.entryPool.New = func() interface{} {
-		return new(timerEntry)
-	}
-
 	return tm
 }
 
 func (tm *timerManager) put(t *timerEntry) {
-	tm.entryPool.Put(t)
+	ePool.put(t)
 }
 
 func (tm *timerManager) get() *timerEntry {
-	return tm.entryPool.Get().(*timerEntry)
+	//return new(timerEntry)
+	return ePool.get()
 }
 
 //开启定时器功能
@@ -150,7 +152,7 @@ func (tm *timerManager) Stop() {
 }
 
 //添加一个定时
-func (tm *timerManager) AddTimer(expire time.Time, interval time.Duration, ctx gnet_context.Context, cb OnTimeOut) (id int64) {
+func (tm *timerManager) AddTimer(expire time.Time, interval time.Duration, ctx iface.Context, cb OnTimeOut) (id int64) {
 	t := tm.get()
 
 	t.expire = expire
@@ -228,7 +230,7 @@ func (tm *timerManager) run() {
 
 //处理expired user timer的callback, 该func保证非阻塞执行
 func (tm *timerManager) handleExpired(entry *timerEntry, t time.Time) {
-	f := func(ctx gnet_context.Context) {
+	f := func(ctx iface.Context) {
 		entry.cb(t, ctx)
 	}
 

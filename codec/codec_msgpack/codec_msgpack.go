@@ -2,7 +2,6 @@ package codec_msgpack
 
 import (
 	"github.com/MaxnSter/gnet/codec"
-	"github.com/MaxnSter/gnet/iface"
 	"github.com/vmihailenco/msgpack"
 )
 
@@ -12,7 +11,7 @@ const (
 )
 
 var (
-	_ iface.Coder = (*coderMsgpack)(nil)
+	_ codec.Coder = (*coderMsgpack)(nil)
 )
 
 // coderMsgpack uses messagepack marshaler and unmarshaller
