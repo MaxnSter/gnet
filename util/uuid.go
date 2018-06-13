@@ -1,11 +1,11 @@
 package util
 
 import (
+	"errors"
 	"sync"
 	"time"
 
 	"github.com/MaxnSter/gnet/logger"
-	"github.com/pkg/errors"
 )
 
 /*
