@@ -1,9 +1,10 @@
 package codec_protobuf
 
 import (
+	"errors"
+
 	"github.com/MaxnSter/gnet/codec"
 	"github.com/golang/protobuf/proto"
-	"github.com/pkg/errors"
 )
 
 const (
