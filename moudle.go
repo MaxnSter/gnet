@@ -12,6 +12,7 @@ import (
 	_ "github.com/MaxnSter/gnet/worker_pool/worker_session_race_other"
 )
 
+// Module是gnet的所有组件集合
 type Module interface {
 	SetPool(pool string)
 	SetCoder(coder string)

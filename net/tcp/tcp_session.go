@@ -41,16 +41,18 @@ type tcpSession struct {
 	closeCh     chan struct{}
 	onCloseDone func(*tcpSession)
 
+	manager  gnet.SessionManager
 	module   gnet.Module
 	operator gnet.Operator
 }
 
-func NewTcpSession(id int64, conn *net.TCPConn, m gnet.Module, o gnet.Operator, onCloseDone func(*tcpSession)) *tcpSession {
+func NewTcpSession(id int64, conn *net.TCPConn, mg gnet.SessionManager, m gnet.Module, o gnet.Operator, onCloseDone func(*tcpSession)) *tcpSession {
 	s := &tcpSession{
 		id:          id,
 		raw:         conn,
 		onCloseDone: onCloseDone,
 		closeCh:     make(chan struct{}),
+		manager:     mg,
 		module:      m,
 		operator:    o,
 		sendQue:     util.NewMsgQueueWithCap(sendBuf),
@@ -60,6 +62,10 @@ func NewTcpSession(id int64, conn *net.TCPConn, m gnet.Module, o gnet.Operator, 
 
 	s.connWrap = bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
 	return s
+}
+
+func (s *tcpSession) AccessManager() gnet.SessionManager {
+	return s.manager
 }
 
 func (s *tcpSession) Raw() io.ReadWriter {
