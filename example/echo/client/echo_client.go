@@ -15,15 +15,14 @@ func loop(session gnet.NetSession) {
 	for scan.Scan() {
 		session.Send(scan.Text())
 	}
+	session.Stop()
 }
 
 func main() {
 	module := gnet.NewDefaultModule()
 	operator := gnet.NewOperator(func(ev gnet.Event) {
-		switch msg := ev.Message().(type) {
-		case []byte:
-			logger.Infoln("recv:" , util.BytesToString(msg))
-		}
+		msg := ev.Message().([]byte)
+		logger.Infoln("recv:" , util.BytesToString(msg))
 	})
 	operator.SetOnConnected(func(session gnet.NetSession) {
 		go loop(session)
