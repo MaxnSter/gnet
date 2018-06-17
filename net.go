@@ -8,11 +8,6 @@ import (
 	"github.com/MaxnSter/gnet/timer"
 )
 
-type Property interface {
-	LoadCtx(key interface{}) (val interface{}, ok bool)
-	StoreCtx(key interface{}, val interface{})
-}
-
 type SessionManager interface {
 	Broadcast(func(session NetSession))
 	GetSession(id int64) (NetSession, bool)
@@ -29,7 +24,7 @@ type ModuleRunner interface {
 
 type NetSession interface {
 	iface.Identifier
-	Property
+	iface.Property
 	ModuleRunner
 
 	Raw() io.ReadWriter
