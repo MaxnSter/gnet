@@ -31,7 +31,6 @@ var (
 	_ message_pack.Packer = (*lvPacker)(nil)
 )
 
-// NOTE: lvPacker只能与byteCoder使用
 type lvPacker struct {
 }
 
