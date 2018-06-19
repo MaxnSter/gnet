@@ -11,7 +11,7 @@ import (
 
 type CallBackWrapper func(ctx iface.Context, cb func(iface.Context))
 
-func Decorate(usrCtx iface.Context, usrCb func(iface.Context), wrapper CallBackWrapper) func() {
+func Bind(usrCtx iface.Context, usrCb func(iface.Context), wrapper CallBackWrapper) func() {
 	return func() { wrapper(usrCtx, usrCb) }
 }
 
@@ -92,7 +92,7 @@ func (loop *EventQueue) Stop() {
 
 func (loop *EventQueue) Put(ctx iface.Context, cb func(iface.Context)) error {
 	select {
-	case loop.queue <- Decorate(ctx, cb, loop.cbWrapper):
+	case loop.queue <- Bind(ctx, cb, loop.cbWrapper):
 		return nil
 	default:
 		//TODO error
@@ -104,8 +104,8 @@ func (loop *EventQueue) MustPut(ctx iface.Context, cb func(iface.Context)) {
 	//FIXME assert not in loop.loop() goroutine
 	//一个可选方案,即使我们在loop.loop() goroutine中,也不会block了,等待测试
 	//go func() {
-	//	loop.queue <- Decorate(ctx, cb, loop.cbWrapper)
+	//	loop.queue <- Bind(ctx, cb, loop.cbWrapper)
 	//}()
-	loop.queue <- Decorate(ctx, cb, loop.cbWrapper)
+	loop.queue <- Bind(ctx, cb, loop.cbWrapper)
 
 }

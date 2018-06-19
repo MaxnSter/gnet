@@ -155,7 +155,7 @@ func (p *poolNoRace) Put(ctx iface.Context, cb func(iface.Context)) {
 	}
 
 	if ch := p.getCh(); ch != nil {
-		ch.ch <- basic_event_queue.Decorate(ctx, cb, p.cbWrapper)
+		ch.ch <- basic_event_queue.Bind(ctx, cb, p.cbWrapper)
 	} else {
 		logger.WithField("name", p.TypeName()).Warning("pool size limit")
 		cb(ctx)
@@ -165,7 +165,7 @@ func (p *poolNoRace) Put(ctx iface.Context, cb func(iface.Context)) {
 func (p *poolNoRace) TryPut(ctx iface.Context, cb func(iface.Context)) bool {
 
 	if ch := p.getCh(); ch != nil {
-		ch.ch <- basic_event_queue.Decorate(ctx, cb, p.cbWrapper)
+		ch.ch <- basic_event_queue.Bind(ctx, cb, p.cbWrapper)
 		return true
 	}
 
