@@ -16,7 +16,7 @@ var (
 )
 
 const (
-	TlvPackerName = "tlv"
+	tlvPackerName = "tlv"
 
 	lengthBytes = 4
 	typeBytes   = 4
@@ -32,7 +32,7 @@ const (
 type tlvPacker struct {
 }
 
-//从指定reader中读数据,并根据指定的coder反序列化出一个message
+// Unpack从指定reader中读数据,并根据指定的coder反序列化出一个message
 func (p *tlvPacker) Unpack(reader io.Reader, c codec.Coder, meta *message_meta.MessageMeta) (msg interface{}, err error) {
 
 	//读取长度段
@@ -78,7 +78,7 @@ func (p *tlvPacker) Unpack(reader io.Reader, c codec.Coder, meta *message_meta.M
 	return msgNew, nil
 }
 
-//根据制定coder序列化制定message,最后写入制定writer
+// Pack根据制定coder序列化制定message,最后写入制定writer
 func (p *tlvPacker) Pack(writer io.Writer, c codec.Coder, msg interface{}) error {
 
 	//获取该对应的messageId
@@ -110,7 +110,7 @@ func (p *tlvPacker) Pack(writer io.Writer, c codec.Coder, msg interface{}) error
 	// put value([]byte after encode)
 	copy(pack[(lengthBytes+typeBytes):], buf)
 
-	// 一直写
+	// 一直写,调用writeFull的原因见pack_type_length_value
 	if err := util.WriteFull(writer, pack); err != nil {
 		return err
 	}
@@ -118,12 +118,11 @@ func (p *tlvPacker) Pack(writer io.Writer, c codec.Coder, msg interface{}) error
 	return nil
 }
 
-//name of tlvPacker
+// TypeName返回tlvPacker的名称
 func (p *tlvPacker) TypeName() string {
-	return TlvPackerName
+	return tlvPackerName
 }
 
-//注册packer
 func init() {
-	message_pack.RegisterPacker(TlvPackerName, &tlvPacker{})
+	message_pack.RegisterPacker(tlvPackerName, &tlvPacker{})
 }

@@ -13,7 +13,7 @@ import (
 
 const (
 	// the name of pack_length_value
-	LvPackName = "lv"
+	lvPackName = "lv"
 
 	// lengthSize
 	lengthSize = 4
@@ -113,9 +113,9 @@ func (p *lvPacker) Pack(writer io.Writer, c codec.Coder, msg interface{}) error 
 
 // TypeName 返回lvPacker的名称
 func (p *lvPacker) TypeName() string {
-	return LvPackName
+	return lvPackName
 }
 
 func init() {
-	message_pack.RegisterPacker(LvPackName, &lvPacker{})
+	message_pack.RegisterPacker(lvPackName, &lvPacker{})
 }
