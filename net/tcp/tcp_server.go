@@ -39,6 +39,7 @@ func newTcpServer(name string, module gnet.Module, operator gnet.Operator) gnet.
 	}
 }
 
+// Listen开始监听指定的addr
 func (s *tcpServer) Listen(addr string) error {
 	s.addr = addr
 	logger.WithField("addr", s.addr).Infoln("s start listening")
@@ -104,16 +105,19 @@ func (s *tcpServer) onNewConnection(conn *net.TCPConn) {
 	logger.WithField("addr", conn.RemoteAddr().String()).Debugln("new connection accepted")
 
 	sid := util.GetUUID()
-	session := NewTcpSession(sid, conn, s, s.module, s.operator, func(session *tcpSession) {
+	session := newTcpSession(sid, conn, s, s.module, s.operator, func(session *tcpSession) {
 		//after session close done
 		s.sessions.Delete(session.ID())
 		s.wg.Done()
 	})
 	s.sessions.Store(sid, session)
 
-	session.Start()
+	session.start()
 }
 
+// ListenAndServe监听指定addr并启动服务器
+// 若Listen成功,则阻塞直到服务器关闭完成
+// 若Listen失败,则panic
 func (s *tcpServer) ListenAndServe(addr string) {
 	if err := s.Listen(addr); err != nil {
 		panic(err)
@@ -135,6 +139,8 @@ func (s *tcpServer) setSignal() {
 	}()
 }
 
+// Serve启动服务器,阻塞直到服务器关闭完成
+// Serve必须在Listen成功后才可调用
 func (s *tcpServer) Serve() {
 	s.setSignal()
 	s.operator.StartModule(s.module)
@@ -147,10 +153,12 @@ func (s *tcpServer) Serve() {
 	s.wg.Wait()
 	logger.Infoln("all session closed")
 
+	//关闭所有组件
 	s.operator.StopModule(s.module)
 	logger.Infoln("server closed, exit...")
 }
 
+// Stop停止服务器
 func (s *tcpServer) Stop() {
 	logger.Infoln("server start closing...")
 
@@ -171,7 +179,17 @@ func (s *tcpServer) shutAllSessions() {
 	})
 }
 
+// BroadCast对所有客户端连接执行fn
+// 若module设置Pool,则fn全部投入Pool中,否则在当前goroutine执行
 func (s *tcpServer) Broadcast(fn func(session gnet.NetSession)) {
+	if s.module.Pool() == nil {
+		s.sessions.Range(func(id, session interface{}) bool {
+			fn(session.(gnet.NetSession))
+			return true
+		})
+		return
+	}
+
 	//FIXME callback hell
 	s.sessions.Range(func(id, session interface{}) bool {
 		s.module.Pool().Put(session, func(ctx iface.Context) {
@@ -181,6 +199,7 @@ func (s *tcpServer) Broadcast(fn func(session gnet.NetSession)) {
 	})
 }
 
+// GetSession返回连接中指定id对应的NetSession
 func (s *tcpServer) GetSession(id int64) (gnet.NetSession, bool) {
 	if session, ok := s.sessions.Load(id); ok {
 		return session.(gnet.NetSession), true

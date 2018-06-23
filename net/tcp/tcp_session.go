@@ -33,7 +33,7 @@ type tcpSession struct {
 	id       int64
 	ctx      sync.Map
 	raw      *net.TCPConn
-	connWrap *bufio.ReadWriter
+	connWrap *bufio.ReadWriter //save syscall
 	sendQue  *util.MsgQueue
 	status   *status
 
@@ -46,7 +46,7 @@ type tcpSession struct {
 	operator gnet.Operator
 }
 
-func NewTcpSession(id int64, conn *net.TCPConn, mg gnet.SessionManager, m gnet.Module, o gnet.Operator, onCloseDone func(*tcpSession)) *tcpSession {
+func newTcpSession(id int64, conn *net.TCPConn, mg gnet.SessionManager, m gnet.Module, o gnet.Operator, onCloseDone func(*tcpSession)) *tcpSession {
 	s := &tcpSession{
 		id:          id,
 		raw:         conn,
@@ -64,19 +64,23 @@ func NewTcpSession(id int64, conn *net.TCPConn, mg gnet.SessionManager, m gnet.M
 	return s
 }
 
+// AccessManager返回管理当前NetSession的SessionManager
 func (s *tcpSession) AccessManager() gnet.SessionManager {
 	return s.manager
 }
 
+// Raw返回当前NetSession对应的读写接口
+// 为了降低调用者的使用权限,有意不返回net.conn,不过当然可以type assert...
 func (s *tcpSession) Raw() io.ReadWriter {
 	return s.raw
 }
 
+// ID返回当前NetSession对应的ID标识
 func (s *tcpSession) ID() int64 {
 	return s.id
 }
 
-func (s *tcpSession) Start() {
+func (s *tcpSession) start() {
 	if !s.status.start() {
 		return
 	}
@@ -89,7 +93,6 @@ func (s *tcpSession) Start() {
 
 	//callback to user in loop
 	if s.operator.GetOnConnected() != nil {
-		logger.WithField("sessionId", s.id).Debugln("session onConnected, callback to user")
 		if s.module.Pool() == nil {
 			s.operator.GetOnConnected()(s)
 		} else {
@@ -105,6 +108,8 @@ func (s *tcpSession) Start() {
 // 流程如下->
 // sender:shutdown(wr) -> receiver:read(0) -> receiver:send over and close socket ->
 // sender:read(0) -> sender:close socket -> socket正常关闭
+
+// Stop关闭当前连接,此调用立即返回,不会等待连接关闭完成
 func (s *tcpSession) Stop() {
 	if !s.status.stop() {
 		return
@@ -163,15 +168,14 @@ func (s *tcpSession) readLoop() {
 	logger.WithField("sessionId", s.id).Debugln("session start readLoop")
 
 	for {
-		select {
-		case <-s.closeCh:
-			return
-		default:
-		}
+		//select {
+		//case <-s.closeCh:
+		//	return
+		//default:
+		//}
 
 		msg, err := s.operator.Read(s.connWrap, s.module)
 		if err != nil {
-
 			//remote close socket
 			if err == io.EOF {
 				logger.WithField("sessionId", s.id).Debugln("read eof from socket")
@@ -246,33 +250,36 @@ func (s *tcpSession) writeLoop() {
 
 }
 
+// RunInPool将f投入工作池中异步执行
+// 若module未设置pool,则直接执行f
 func (s *tcpSession) RunInPool(f func(gnet.NetSession)) {
 	if s.module.Pool() == nil {
 		f(s)
-	} else {
-		s.module.Pool().Put(s, func(ctx iface.Context) {
-			f(ctx.(gnet.NetSession))
-		})
+		return
 	}
+	s.module.Pool().Put(s, func(ctx iface.Context) {
+		f(ctx.(gnet.NetSession))
+	})
 }
 
+// Send添加消息至发送队列,保证goroutine safe,不阻塞
 func (s *tcpSession) Send(msg interface{}) {
-	//select {
-	//case <-s.closeCh:
-	//	return
-	//default:
-	//}
 	s.sendQue.Put(msg)
 }
 
+// LoadCtx加载key对应的上下文
 func (s *tcpSession) LoadCtx(k interface{}) (v interface{}, ok bool) {
 	return s.ctx.Load(k)
 }
 
+// StoreCtx保存上下文信息
 func (s *tcpSession) StoreCtx(k, v interface{}) {
 	s.ctx.Store(k, v)
 }
 
+// RunAt添加一个单次定时器,在runAt时间触发cb
+// 注意:cb中的ctx为NetSession
+// 若module未指定timer,则此调用无效
 func (s *tcpSession) RunAt(runAt time.Time, cb timer.OnTimeOut) (timerId int64) {
 	if s.module.Timer() == nil {
 		return -1
@@ -281,6 +288,9 @@ func (s *tcpSession) RunAt(runAt time.Time, cb timer.OnTimeOut) (timerId int64) 
 	return s.module.Timer().AddTimer(runAt, 0, s, cb)
 }
 
+// RunAfter添加一个单次定时器,在Now + After时间触发cb
+// 注意:cb中的ctx为NetSession
+// 若module未指定timer,则此调用无效
 func (s *tcpSession) RunAfter(after time.Duration, cb timer.OnTimeOut) (timerId int64) {
 	if s.module.Timer() == nil {
 		return -1
@@ -288,6 +298,9 @@ func (s *tcpSession) RunAfter(after time.Duration, cb timer.OnTimeOut) (timerId 
 	return s.module.Timer().AddTimer(time.Now().Add(after), 0, s, cb)
 }
 
+// RunEvery增加一个interval执行周期的定时器,在runAt触发第一次cb
+// 注意:cb中的ctx为NetSession
+// 若module未指定timer,则此调用无效
 func (s *tcpSession) RunEvery(runAt time.Time, interval time.Duration, cb timer.OnTimeOut) (timerId int64) {
 	if s.module.Timer() == nil {
 		return -1
@@ -295,6 +308,8 @@ func (s *tcpSession) RunEvery(runAt time.Time, interval time.Duration, cb timer.
 	return s.module.Timer().AddTimer(runAt, interval, s, cb)
 }
 
+// CancelTimer取消timerId对应的定时器
+// 若定时器已触发或timerId无效,则无任何效果
 func (s *tcpSession) CancelTimer(timerId int64) {
 	if s.module.Timer() == nil {
 		return

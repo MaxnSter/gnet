@@ -22,7 +22,7 @@ const (
 type tcpClient struct {
 	addr          string
 	name          string
-	sessionNumber int
+	sessionNumber int //同时建立几个连接
 	sessions      sync.Map
 	status        *status
 
@@ -42,13 +42,19 @@ func newTcpClient(name string, m gnet.Module, o gnet.Operator) gnet.NetClient {
 	}
 }
 
+// SetSessionNumber设置客户端连接数,默认为1
 func (c *tcpClient) SetSessionNumber(sessionNumber int) {
+	if sessionNumber < 1 {
+		c.sessionNumber = 1
+		return
+	}
 	c.sessionNumber = sessionNumber
 }
 
+// Connect开始建立连接并启动客户端,本次调用将阻塞直到客户端退出
+// Connect会自动重试直到成功建立连接
 func (c *tcpClient) Connect(addr string) {
 	if !c.status.start() {
-		//TODO duplicate Connect()
 		return
 	}
 
@@ -60,7 +66,7 @@ func (c *tcpClient) Connect(addr string) {
 		go c.connect()
 	}
 
-	c.Run()
+	c.run()
 }
 
 func (c *tcpClient) connect() {
@@ -90,13 +96,13 @@ func (c *tcpClient) connect() {
 
 func (c *tcpClient) onNewSession(conn *net.TCPConn) {
 	sid := util.GetUUID()
-	s := NewTcpSession(sid, conn, c, c.module, c.operator, func(s *tcpSession) {
+	s := newTcpSession(sid, conn, c, c.module, c.operator, func(s *tcpSession) {
 		c.sessions.Delete(s.ID())
 		c.wg.Done()
 	})
 
 	c.sessions.Store(sid, s)
-	s.Start()
+	s.start()
 }
 
 func (c *tcpClient) setSignal() {
@@ -111,7 +117,7 @@ func (c *tcpClient) setSignal() {
 	}()
 }
 
-func (c *tcpClient) Run() {
+func (c *tcpClient) run() {
 	c.operator.StartModule(c.module)
 
 	//wait for session to stop
@@ -123,9 +129,10 @@ func (c *tcpClient) Run() {
 	logger.Infoln("client closed, exit...")
 }
 
+// Stop停止客户端,关闭当前所有客户端连接
+// 此调用goroutine safe
 func (c *tcpClient) Stop() {
 	if !c.status.stop() {
-		//TODO duplicate stop()
 		return
 	}
 
@@ -136,7 +143,17 @@ func (c *tcpClient) Stop() {
 	})
 }
 
+// BroadCast对所有客户端连接执行fn
+// 若module设置Pool,则fn全部投入Pool中,否则在当前goroutine执行
 func (c *tcpClient) Broadcast(fn func(session gnet.NetSession)) {
+	if c.module.Pool() == nil {
+		c.sessions.Range(func(id, session interface{}) bool {
+			fn(session.(gnet.NetSession))
+			return true
+		})
+		return
+	}
+
 	//FIXME callback hell
 	c.sessions.Range(func(id, session interface{}) bool {
 		c.module.Pool().Put(session, func(ctx iface.Context) {
@@ -146,6 +163,7 @@ func (c *tcpClient) Broadcast(fn func(session gnet.NetSession)) {
 	})
 }
 
+// GetSession返回客户端连接中指定id对应的NetSession
 func (c *tcpClient) GetSession(id int64) (gnet.NetSession, bool) {
 	if session, ok := c.sessions.Load(id); ok {
 		return session.(gnet.NetSession), true
