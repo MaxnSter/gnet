@@ -130,7 +130,6 @@ func (c *tcpClient) run() {
 }
 
 // Stop停止客户端,关闭当前所有客户端连接
-// 此调用goroutine safe
 func (c *tcpClient) Stop() {
 	if !c.status.stop() {
 		return
@@ -143,7 +142,7 @@ func (c *tcpClient) Stop() {
 	})
 }
 
-// BroadCast对所有客户端连接执行fn
+// BroadCast对所有NetSession连接执行fn
 // 若module设置Pool,则fn全部投入Pool中,否则在当前goroutine执行
 func (c *tcpClient) Broadcast(fn func(session gnet.NetSession)) {
 	if c.module.Pool() == nil {
@@ -163,7 +162,7 @@ func (c *tcpClient) Broadcast(fn func(session gnet.NetSession)) {
 	})
 }
 
-// GetSession返回客户端连接中指定id对应的NetSession
+// GetSession返回指定id对应的NetSession
 func (c *tcpClient) GetSession(id int64) (gnet.NetSession, bool) {
 	if session, ok := c.sessions.Load(id); ok {
 		return session.(gnet.NetSession), true

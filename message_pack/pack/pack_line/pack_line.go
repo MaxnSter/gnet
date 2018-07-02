@@ -16,7 +16,7 @@ const (
 	linePackerName = "line"
 
 	// message end mode
-	lineEndModeLRLF  = iota
+	lineEndModeLRLF = iota
 	lineEndModeLF
 )
 

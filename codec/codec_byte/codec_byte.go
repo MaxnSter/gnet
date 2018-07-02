@@ -9,7 +9,7 @@ import (
 
 const (
 	// the name of coderByte
-	CoderByteName = "byte"
+	coderByteName = "byte"
 )
 
 var (
@@ -59,10 +59,10 @@ func (coder *coderByte) Decode(data []byte, v interface{}) (err error) {
 
 // return the name of coderByte
 func (coder *coderByte) TypeName() string {
-	return CoderByteName
+	return coderByteName
 }
 
 // register coderByte
 func init() {
-	codec.RegisterCoder(CoderByteName, &coderByte{})
+	codec.RegisterCoder(coderByteName, &coderByte{})
 }

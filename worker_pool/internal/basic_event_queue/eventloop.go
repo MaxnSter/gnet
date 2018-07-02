@@ -101,11 +101,10 @@ func (loop *EventQueue) Put(ctx iface.Context, cb func(iface.Context)) error {
 }
 
 func (loop *EventQueue) MustPut(ctx iface.Context, cb func(iface.Context)) {
-	//FIXME assert not in loop.loop() goroutine
-	//一个可选方案,即使我们在loop.loop() goroutine中,也不会block了,等待测试
-	//go func() {
-	//	loop.queue <- Bind(ctx, cb, loop.cbWrapper)
-	//}()
-	loop.queue <- Bind(ctx, cb, loop.cbWrapper)
-
+	// assert not in loop.loop() goroutine
+	// 防止雪崩
+	go func() {
+		loop.queue <- Bind(ctx, cb, loop.cbWrapper)
+	}()
+	//loop.queue <- Bind(ctx, cb, loop.cbWrapper)
 }

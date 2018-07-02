@@ -5,6 +5,7 @@ var (
 	netClientCreator = map[string]func(string, Module, Operator) NetClient{}
 )
 
+// RegisterServerCreator注册一个gnet server的Creator
 func RegisterServerCreator(creatorName string, f func(string, Module, Operator) NetServer) {
 	if _, ok := netServerCreator[creatorName]; ok {
 		panic("duplicate server creator register:" + creatorName)
@@ -13,6 +14,7 @@ func RegisterServerCreator(creatorName string, f func(string, Module, Operator) 
 	}
 }
 
+// RegisterClientCreator注册一个gnet client的Creator
 func RegisterClientCreator(creatorName string, f func(string, Module, Operator) NetClient) {
 	if _, ok := netClientCreator[creatorName]; ok {
 		panic("duplicate client creator register:" + creatorName)
@@ -21,7 +23,8 @@ func RegisterClientCreator(creatorName string, f func(string, Module, Operator) 
 	}
 }
 
-// only support tcp for now
+// NewNetServer通过指定的网络组件,以及Module和Operator,返回一个NetServer
+// 若指定的网络组件未注册,则panic
 func NewNetServer(network, name string, module Module, operator Operator) NetServer {
 	checkValid(module, operator)
 	if creator, ok := netServerCreator[network]; !ok {
@@ -31,6 +34,8 @@ func NewNetServer(network, name string, module Module, operator Operator) NetSer
 	}
 }
 
+// NewNetClient通过指定的网络组件,以及Module和Operator,返回一个NetClient
+// 若指定的网络组件未注册,则panic
 func NewNetClient(network, name string, module Module, operator Operator) NetClient {
 	checkValid(module, operator)
 	if creator, ok := netClientCreator[network]; !ok {

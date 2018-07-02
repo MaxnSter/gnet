@@ -12,7 +12,7 @@ var (
 
 const (
 	// the name of coderJson
-	CoderJsonTypeName = "json"
+	coderJsonTypeName = "json"
 )
 
 // coderJson use json marshaler and unmarshaler
@@ -20,7 +20,7 @@ type coderJson struct{}
 
 // return the name of coderJson
 func (c *coderJson) TypeName() string {
-	return CoderJsonTypeName
+	return coderJsonTypeName
 }
 
 // Encode encodes an object into slice of bytes

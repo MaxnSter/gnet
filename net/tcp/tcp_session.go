@@ -31,7 +31,7 @@ var (
 
 type tcpSession struct {
 	id       int64
-	ctx      sync.Map
+	ctx      sync.Map //FIXME 过于粗暴
 	raw      *net.TCPConn
 	connWrap *bufio.ReadWriter //save syscall
 	sendQue  *util.MsgQueue
@@ -102,7 +102,7 @@ func (s *tcpSession) start() {
 
 }
 
-// 正确关闭tcp连接的做法
+// 关于正确关闭tcp连接的看法
 // correct  sender:		send() + shutdown(wr) + read()->0 + close socket
 // correct  receiver:	read()->0 + nothing more to send -> close socket
 // 流程如下->
@@ -250,7 +250,7 @@ func (s *tcpSession) writeLoop() {
 
 }
 
-// RunInPool将f投入工作池中异步执行
+// RunInPool将f投入module对应的工作池中异步执行
 // 若module未设置pool,则直接执行f
 func (s *tcpSession) RunInPool(f func(gnet.NetSession)) {
 	if s.module.Pool() == nil {
@@ -309,7 +309,7 @@ func (s *tcpSession) RunEvery(runAt time.Time, interval time.Duration, cb timer.
 }
 
 // CancelTimer取消timerId对应的定时器
-// 若定时器已触发或timerId无效,则无任何效果
+// 若定时器已触发或timerId无效,则次调用无效
 func (s *tcpSession) CancelTimer(timerId int64) {
 	if s.module.Timer() == nil {
 		return

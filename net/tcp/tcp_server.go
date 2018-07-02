@@ -139,7 +139,7 @@ func (s *tcpServer) setSignal() {
 	}()
 }
 
-// Serve启动服务器,阻塞直到服务器关闭完成
+// Serve启动服务器,调用方阻塞直到服务器关闭完成
 // Serve必须在Listen成功后才可调用
 func (s *tcpServer) Serve() {
 	s.setSignal()
@@ -173,13 +173,14 @@ func (s *tcpServer) Stop() {
 
 func (s *tcpServer) shutAllSessions() {
 	//关闭所有在线连接
+	//FIXME any better way?
 	logger.Infoln("closing all sessions...")
 	s.Broadcast(func(session gnet.NetSession) {
 		session.Stop()
 	})
 }
 
-// BroadCast对所有客户端连接执行fn
+// BroadCast对所有NetSession连接执行fn
 // 若module设置Pool,则fn全部投入Pool中,否则在当前goroutine执行
 func (s *tcpServer) Broadcast(fn func(session gnet.NetSession)) {
 	if s.module.Pool() == nil {
@@ -199,7 +200,7 @@ func (s *tcpServer) Broadcast(fn func(session gnet.NetSession)) {
 	})
 }
 
-// GetSession返回连接中指定id对应的NetSession
+// GetSession返回指定id对应的NetSession
 func (s *tcpServer) GetSession(id int64) (gnet.NetSession, bool) {
 	if session, ok := s.sessions.Load(id); ok {
 		return session.(gnet.NetSession), true

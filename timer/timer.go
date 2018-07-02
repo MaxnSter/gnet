@@ -100,12 +100,10 @@ type timerManager struct {
 	resumeCh    chan struct{}
 	closeCh     chan struct{}
 	closeDoneCh chan struct{}
+
+	sync.Once
 }
 
-//指定一个worker entryPool,用于负责调用caller传入的callback,返回timerManager
-//因为我们只用一个go routine来负责所有用户定时器,所以在timer expire时,
-//对callback的处理,必须是非阻塞的.因此,把callback的调用,交给worker pool来做
-//timerManager只负责往pool里填东西
 func newTimerManager(pool worker_pool.Pool) *timerManager {
 	tm := &timerManager{
 		pool:        pool,
@@ -124,18 +122,20 @@ func (tm *timerManager) put(t *timerEntry) {
 }
 
 func (tm *timerManager) get() *timerEntry {
-	//return new(timerEntry)
 	return ePool.get()
 }
 
-//开启定时器功能
+// Start开启定时器功能,此方法保证goroutine safe
 func (tm *timerManager) Start() {
-	logger.Infoln("timer start")
+	tm.Once.Do(func() {
+		logger.Infoln("timer start")
 
-	heap.Init(&tm.timers)
-	go tm.run()
+		heap.Init(&tm.timers)
+		go tm.run()
+	})
 }
 
+// StopAsync关闭定时器,当定时器内部完全关闭时 done可读
 func (tm *timerManager) StopAsync() (done <-chan struct{}) {
 	tm.closeCh <- struct{}{}
 
@@ -143,15 +143,12 @@ func (tm *timerManager) StopAsync() (done <-chan struct{}) {
 	return tm.closeDoneCh
 }
 
-//关闭定时器,当定时器内部完全关闭时 done可读
+// Stop关闭定时器,调用方阻塞直到定时器完全关闭
 func (tm *timerManager) Stop() {
-	tm.closeCh <- struct{}{}
-
-	logger.Infoln("timer stopping...")
-	<-tm.closeDoneCh
+	<-tm.StopAsync()
 }
 
-//添加一个定时
+// AddTimer添加一个定时任务,并返回该任务对应的id
 func (tm *timerManager) AddTimer(expire time.Time, interval time.Duration, ctx iface.Context, cb OnTimeOut) (id int64) {
 	t := tm.get()
 
@@ -169,8 +166,8 @@ func (tm *timerManager) AddTimer(expire time.Time, interval time.Duration, ctx i
 	return t.timerId
 }
 
-//取消一个定时,如果该timer为一次性(interval = 0)正好expire,
-//则取消无效
+// CancelTimer取消一个定时
+// node:如果该timer为一次性(interval = 0)且正好expire, 则取消无效
 func (tm *timerManager) CancelTimer(id int64) {
 	idx := tm.timers.getTimerIdx(id)
 	if idx == -1 {
@@ -213,7 +210,7 @@ func (tm *timerManager) run() {
 		} else {
 			timeout = UNTOUCHED
 		}
-		loopTimer.SafeReset(timeout)
+		loopTimer.safeReset(timeout)
 
 		select {
 		case <-tm.pauseCh:
@@ -222,7 +219,7 @@ func (tm *timerManager) run() {
 		case <-tm.closeCh:
 			return
 		case <-loopTimer.Timer.C:
-			loopTimer.SCR()
+			loopTimer.scr()
 			tm.expired(&expiredTNode)
 		}
 	}

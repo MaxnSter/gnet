@@ -6,6 +6,8 @@ var (
 	metas = map[uint32]*MessageMeta{}
 )
 
+// RegisterMsgMeta注册一个meta
+// 如果meta已存在或meda id重复,则panic
 func RegisterMsgMeta(m *MessageMeta) {
 	if _, ok := metas[m.ID]; ok {
 		panic(fmt.Sprintf("dup register message_meta meta, id :%d", m.ID))
@@ -14,6 +16,8 @@ func RegisterMsgMeta(m *MessageMeta) {
 	metas[m.ID] = m
 }
 
+// MustGetMsgMeta获取指定id对应的meta.
+// 若未注册,则panic
 func MustGetMsgMeta(id uint32) *MessageMeta {
 
 	if m, ok := metas[id]; ok {

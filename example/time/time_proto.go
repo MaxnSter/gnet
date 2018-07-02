@@ -3,6 +3,6 @@ package time
 import "time"
 
 type TimeProto struct {
-	T time.Time
+	T   time.Time
 	Key string
 }

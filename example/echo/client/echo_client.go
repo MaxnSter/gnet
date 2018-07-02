@@ -22,7 +22,7 @@ func main() {
 	module := gnet.NewDefaultModule()
 	operator := gnet.NewOperator(func(ev gnet.Event) {
 		msg := ev.Message().([]byte)
-		logger.Infoln("recv:" , util.BytesToString(msg))
+		logger.Infoln("recv:", util.BytesToString(msg))
 	})
 	operator.SetOnConnected(func(session gnet.NetSession) {
 		go loop(session)

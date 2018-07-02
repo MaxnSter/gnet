@@ -18,17 +18,16 @@ const (
 )
 
 func init() {
-	worker_pool.RegisterWorkerPool(poolName, NewPoolNoRace)
+	worker_pool.RegisterWorkerPool(poolName, newPoolNoRace)
 }
 
-//无data race情况
-
-//from fastHttp
 type goChan struct {
 	lastUseTime time.Time
 	ch          chan func()
 }
 
+// 此pool可用于无data race情况,常用于无状态服务
+// 摘自fasthttp的pool,一个可伸缩的教科书级别的goroutine池
 type poolNoRace struct {
 	maxGoroutinesAmount      int
 	maxGoroutineIdleDuration time.Duration
@@ -39,16 +38,18 @@ type poolNoRace struct {
 	ready           []*goChan
 	goChanPool      sync.Pool
 	cbWrapper       basic_event_queue.CallBackWrapper
+	sync.Once
 
 	stopCh    chan struct{}
 	closeDone chan struct{}
 }
 
+// TypeName返回pool的唯一表示
 func (p *poolNoRace) TypeName() string {
 	return poolName
 }
 
-func NewPoolNoRace() worker_pool.Pool {
+func newPoolNoRace() worker_pool.Pool {
 	return &poolNoRace{
 		maxGoroutinesAmount:      DefaultMaxGoroutinesAmount,
 		maxGoroutineIdleDuration: DefaultMaxGoroutineIdleDuration,
@@ -60,7 +61,14 @@ func NewPoolNoRace() worker_pool.Pool {
 	}
 }
 
+// Start启动pool,此方法保证goroutineeeee safe
 func (p *poolNoRace) Start() {
+	p.Once.Do(func() {
+		p.start()
+	})
+}
+
+func (p *poolNoRace) start() {
 	logger.WithField("name", p.TypeName()).Infoln("worker_pool pool start")
 	go func() {
 		var scratch []*goChan
@@ -101,11 +109,12 @@ func (p *poolNoRace) clean(scratch *[]*goChan) {
 	}
 }
 
+// StopAsync与Stop相同,但它立即返回, pool完全停止时done active
 func (p *poolNoRace) StopAsync() (done <-chan struct{}) {
 
 	select {
 	case <-p.stopCh:
-		panic("pool already stop")
+		return
 	default:
 	}
 
@@ -141,10 +150,13 @@ func (p *poolNoRace) StopAsync() (done <-chan struct{}) {
 	return p.closeDone
 }
 
+// Stop停止pool,调用方阻塞直到Stop返回
+// pool保证此时剩余的pool item全部执行完毕才返回
 func (p *poolNoRace) Stop() {
 	<-p.StopAsync()
 }
 
+// Put往pool中投放任务,无论pool是否已满,此次投放必定成功
 func (p *poolNoRace) Put(ctx iface.Context, cb func(iface.Context)) {
 
 	select {
@@ -162,6 +174,7 @@ func (p *poolNoRace) Put(ctx iface.Context, cb func(iface.Context)) {
 	}
 }
 
+// TryPut与Put相同,但当pool已满试,投放失败,返回false
 func (p *poolNoRace) TryPut(ctx iface.Context, cb func(iface.Context)) bool {
 
 	if ch := p.getCh(); ch != nil {

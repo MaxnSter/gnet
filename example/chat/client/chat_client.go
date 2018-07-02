@@ -35,9 +35,9 @@ func loop(s gnet.NetSession) {
 	scan := bufio.NewScanner(os.Stdin)
 	for scan.Scan() {
 		msg := &chat.ChatMessage{
-			Id:chat.ChatMsgId,
-			Talker:s.Raw().(net.Conn).RemoteAddr().String(),
-			Msg:scan.Text(),
+			Id:     chat.ChatMsgId,
+			Talker: s.Raw().(net.Conn).RemoteAddr().String(),
+			Msg:    scan.Text(),
 		}
 		s.Send(msg)
 	}
@@ -50,4 +50,3 @@ func onMessage(ev gnet.Event) {
 		logger.Infoln("recv msg:" + msg.Msg + " from:" + msg.Talker)
 	}
 }
-

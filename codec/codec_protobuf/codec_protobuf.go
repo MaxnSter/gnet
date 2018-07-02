@@ -9,7 +9,7 @@ import (
 
 const (
 	// the name of coderProtobuf
-	CoderProtoTypeName = "protobuf"
+	coderProtoTypeName = "protobuf"
 )
 
 var (
@@ -21,7 +21,7 @@ type coderProtobuf struct{}
 
 // return the name of coderProtobuf
 func (p *coderProtobuf) TypeName() string {
-	return CoderProtoTypeName
+	return coderProtoTypeName
 }
 
 // Encode encodes an object into slice of bytes
@@ -46,5 +46,5 @@ func (p *coderProtobuf) Decode(data []byte, pMsg interface{}) error {
 
 // register coderProtobuf
 func init() {
-	codec.RegisterCoder(CoderProtoTypeName, &coderProtobuf{})
+	codec.RegisterCoder(coderProtoTypeName, &coderProtobuf{})
 }

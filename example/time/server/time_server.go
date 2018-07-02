@@ -31,6 +31,8 @@ func main() {
 func onConnected(s gnet.NetSession) {
 	// 回调中的ctx固定为NetSession
 	s.RunEvery(time.Now(), time.Second, func(i time.Time, ctx iface.Context) {
-		ctx.(gnet.NetSession).Send(TimeProto{T: time.Now(), Key:"i don't want to learn any more"})
+		ctx.(gnet.NetSession).Send(TimeProto{
+			T:   time.Now(),
+			Key: "i don't want to learn any more"})
 	})
 }

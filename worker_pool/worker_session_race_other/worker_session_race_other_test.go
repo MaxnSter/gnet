@@ -25,7 +25,7 @@ func (ts *tSession) Run() {
 }
 
 func TestNewPoolRaceOther(t *testing.T) {
-	p := NewPoolRaceOther()
+	p := newPoolRaceOther()
 	assert.NotNil(t, p, "pool should not be nil")
 	p.Start()
 
@@ -85,7 +85,7 @@ func TestNewPoolRaceOther(t *testing.T) {
 
 func BenchmarkNewPoolRaceOther(b *testing.B) {
 
-	p := NewPoolRaceOther()
+	p := newPoolRaceOther()
 	p.Start()
 
 	ts := &tSession{
@@ -144,7 +144,7 @@ func BenchmarkNewPoolRaceOther(b *testing.B) {
 
 func TestPoolRaceOther_Stop(t *testing.T) {
 
-	q := NewPoolRaceOther()
+	q := newPoolRaceOther()
 	wg := &sync.WaitGroup{}
 	q.Start()
 
@@ -166,7 +166,7 @@ func TestPoolRaceOther_Stop(t *testing.T) {
 
 func TestPoolRaceOther_Stop2(t *testing.T) {
 
-	q := NewPoolRaceOther()
+	q := newPoolRaceOther()
 	wg := &sync.WaitGroup{}
 	wgDoneCh := make(chan struct{})
 	q.Start()

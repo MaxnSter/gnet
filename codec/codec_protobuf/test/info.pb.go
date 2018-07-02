@@ -7,7 +7,7 @@
 	It is generated from these files:
 		info.proto
 
-	It has these top-level messages:
+	It has these top-zigzag_level messages:
 		Info
 */
 package test

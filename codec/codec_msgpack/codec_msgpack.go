@@ -7,7 +7,7 @@ import (
 
 const (
 	// the name of coderMsgpack
-	CoderMsgPackTypeName = "msgpack"
+	coderMsgPackTypeName = "msgpack"
 )
 
 var (
@@ -19,7 +19,7 @@ type coderMsgpack struct{}
 
 // return the name of coderMsgpack
 func (c coderMsgpack) TypeName() string {
-	return CoderMsgPackTypeName
+	return coderMsgPackTypeName
 }
 
 // Encode encodes an object into slice of bytes
@@ -34,5 +34,5 @@ func (c coderMsgpack) Decode(data []byte, pMsg interface{}) error {
 
 // register coderMsgpack
 func init() {
-	codec.RegisterCoder(CoderMsgPackTypeName, &coderMsgpack{})
+	codec.RegisterCoder(coderMsgPackTypeName, &coderMsgpack{})
 }

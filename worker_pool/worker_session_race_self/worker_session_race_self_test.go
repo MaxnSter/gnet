@@ -21,7 +21,7 @@ func (ts *tSession) Send(message interface{}) {}
 func (ts *tSession) Stop()                    {}
 
 func TestNewPoolRaceSelf(t *testing.T) {
-	p := NewPoolRaceSelf()
+	p := newPoolRaceSelf()
 	assert.NotNil(t, p, "pool should not be nil")
 	p.Start()
 
@@ -74,63 +74,9 @@ func TestNewPoolRaceSelf(t *testing.T) {
 	wg.Wait()
 }
 
-func BenchmarkNewPoolRaceSelf(b *testing.B) {
-
-	p := NewPoolRaceSelf()
-	p.Start()
-
-	wg := sync.WaitGroup{}
-	raceFunc := func(sId int) {
-		nwg := sync.WaitGroup{}
-		ts := &tSession{Id: int64(sId), race: new(int)}
-
-		raceF := func(ctx iface.Context) {
-			if ts.race != nil {
-				time.Sleep(time.Millisecond)
-				*ts.race = 1
-			}
-			nwg.Done()
-		}
-
-		raceF1 := func(ctx iface.Context) {
-			ts.race = nil
-			nwg.Done()
-		}
-
-		for i := 0; i < 500; i++ {
-			nwg.Add(1)
-
-			//MUST panic in benchmark
-			//if i%2 == 0 {
-			//	go raceF()
-			//} else {
-			//	go raceF1()
-			//}
-
-			//never panic
-			if i%2 == 0 {
-				p.Put(ts, raceF)
-			} else {
-				p.Put(ts, raceF1)
-			}
-
-		}
-
-		nwg.Wait()
-		wg.Done()
-	}
-
-	for i := 0; i < 100; i++ {
-		wg.Add(1)
-		go raceFunc(i)
-	}
-
-	wg.Wait()
-}
-
 func TestPoolRaceSelf_Stop(t *testing.T) {
 
-	q := NewPoolRaceSelf()
+	q := newPoolRaceSelf()
 	q.Start()
 
 	for i := 0; i < 10; i++ {
@@ -151,12 +97,12 @@ func TestPoolRaceSelf_Stop(t *testing.T) {
 
 func TestPoolRaceSelf_Stop2(t *testing.T) {
 
-	q := NewPoolRaceSelf()
+	q := newPoolRaceSelf()
 	wg := &sync.WaitGroup{}
 	wgDoneCh := make(chan struct{})
 	q.Start()
 
-	for i := 0; i < 500000; i++ {
+	for i := 0; i < 5000; i++ {
 		wg.Add(1)
 		idx := i
 		q.Put(&tSession{int64(idx), nil}, func(_ iface.Context) {
