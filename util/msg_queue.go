@@ -5,7 +5,7 @@ import (
 	"sync"
 )
 
-// MsgQueue是一个双缓冲队列的BlockingQueue
+// MsgQueue 是一个双缓冲队列的BlockingQueue
 // 在"多生产者,单消费者"的场景下下保证线程安全
 type MsgQueue struct {
 	list2       []interface{}
@@ -16,12 +16,12 @@ type MsgQueue struct {
 	wakeup chan struct{}
 }
 
-// NewMsgQueue创建并返回一个初始容量为0的消息队列
+// NewMsgQueue 创建并返回一个初始容量为0的消息队列
 func NewMsgQueue() *MsgQueue {
 	return NewMsgQueueWithCap(0)
 }
 
-// NewMsgQueueWithCap创建并返回一个指定初始容量的消息队列
+// NewMsgQueueWithCap 创建并返回一个指定初始容量的消息队列
 func NewMsgQueueWithCap(cap int) *MsgQueue {
 	if cap < 0 {
 		cap = 0
@@ -40,7 +40,7 @@ func NewMsgQueueWithCap(cap int) *MsgQueue {
 	return q
 }
 
-// Add往队列中添加元素
+// Put 往队列中添加元素
 func (q *MsgQueue) Put(msg interface{}) {
 	q.lock.Lock()
 	curList := q.produceList
@@ -57,12 +57,12 @@ func (q *MsgQueue) Put(msg interface{}) {
 	}
 }
 
-// Pick获取当前队列中的所有元素,若当前队列为空,则阻塞直至有新元素被添加
+// Pick 获取当前队列中的所有元素,若当前队列为空,则阻塞直至有新元素被添加
 func (q *MsgQueue) Pick(retList *[]interface{}) {
 	q.PickWithSignal(nil, retList)
 }
 
-// PickWithSignal与Pick相同,但当signal active时,强制退出阻塞状态并返回
+// PickWithSignal 与Pick相同,但当signal active时,强制退出阻塞状态并返回
 func (q *MsgQueue) PickWithSignal(signal <-chan struct{}, retList *[]interface{}) {
 	q.lock.Lock()
 	consumeList := q.consume()
@@ -90,7 +90,7 @@ func (q *MsgQueue) PickWithSignal(signal <-chan struct{}, retList *[]interface{}
 
 }
 
-// PickWithSignal与Pick相同,但当ctx active时,强制退出阻塞状态并返回
+// PickWithCtx 与Pick相同,但当ctx active时,强制退出阻塞状态并返回
 func (q *MsgQueue) PickWithCtx(ctx context.Context, retList *[]interface{}) {
 	q.PickWithSignal(ctx.Done(), retList)
 }

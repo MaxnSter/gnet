@@ -106,7 +106,7 @@ func (s *tcpServer) onNewConnection(conn *net.TCPConn) {
 	logger.WithField("addr", conn.RemoteAddr().String()).Debugln("new connection accepted")
 
 	sid := util.GetUUID()
-	session := newTcpSession(sid, conn, s, s.module, s.operator, func(session *tcpSession) {
+	session := newTCPSession(sid, conn, s, s.module, s.operator, func(session *tcpSession) {
 		//after session close done
 		s.sessions.Delete(session.ID())
 		s.wg.Done()

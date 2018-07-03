@@ -65,8 +65,8 @@ func (p *tlvPacker) Unpack(reader io.Reader, c codec.Coder, meta *message_meta.M
 	}
 
 	//从body中解析messageId,根据messageId,我们可以获取该messageId对应的meta信息
-	msgId := binary.BigEndian.Uint32(body)
-	msgNew := message_meta.MustGetMsgMeta(msgId).NewType()
+	msgID := binary.BigEndian.Uint32(body)
+	msgNew := message_meta.MustGetMsgMeta(msgID).NewType()
 
 	//body字段,meta信息,用于decode,得到最终的message
 	body = body[typeBytes:]
@@ -82,7 +82,7 @@ func (p *tlvPacker) Unpack(reader io.Reader, c codec.Coder, meta *message_meta.M
 func (p *tlvPacker) Pack(writer io.Writer, c codec.Coder, msg interface{}) error {
 
 	//获取该对应的messageId
-	msgId := msg.(message_meta.MetaIdentifier).GetId()
+	msgID := msg.(message_meta.MetaIdentifier).GetId()
 
 	//对应上图中的value
 	var buf []byte
@@ -104,8 +104,8 @@ func (p *tlvPacker) Pack(writer io.Writer, c codec.Coder, msg interface{}) error
 	// Length的值 = Type + Value总的长度
 	binary.BigEndian.PutUint32(pack, uint32(bodyLen))
 
-	// put type(msgId)
-	binary.BigEndian.PutUint32(pack[lengthBytes:], uint32(msgId))
+	// put type(msgID)
+	binary.BigEndian.PutUint32(pack[lengthBytes:], uint32(msgID))
 
 	// put value([]byte after encode)
 	copy(pack[(lengthBytes+typeBytes):], buf)

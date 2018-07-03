@@ -6,7 +6,7 @@ var (
 	workerPools = map[string]workerPoolCreator{}
 )
 
-// RegisterWorkerPool注册一个pool.
+// RegisterWorkerPool 注册一个pool.
 // 如果name已存在,则panic
 func RegisterWorkerPool(name string, creator workerPoolCreator) {
 	if _, ok := workerPools[name]; ok {
@@ -16,7 +16,7 @@ func RegisterWorkerPool(name string, creator workerPoolCreator) {
 	workerPools[name] = creator
 }
 
-// MustGetPacker获取指定名字对应的pool.
+// MustGetPacker 获取指定名字对应的pool.
 // 若未注册,则panic
 func MustGetWorkerPool(name string) Pool {
 	if creator, ok := workerPools[name]; !ok {

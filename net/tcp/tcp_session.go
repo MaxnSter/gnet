@@ -46,7 +46,7 @@ type tcpSession struct {
 	operator gnet.Operator
 }
 
-func newTcpSession(id int64, conn *net.TCPConn, mg gnet.SessionManager, m gnet.Module, o gnet.Operator, onCloseDone func(*tcpSession)) *tcpSession {
+func newTCPSession(id int64, conn *net.TCPConn, mg gnet.SessionManager, m gnet.Module, o gnet.Operator, onCloseDone func(*tcpSession)) *tcpSession {
 	s := &tcpSession{
 		id:          id,
 		raw:         conn,
@@ -273,7 +273,7 @@ func (s *tcpSession) StoreCtx(k, v interface{}) {
 // RunAt添加一个单次定时器,在runAt时间触发cb
 // 注意:cb中的ctx为NetSession
 // 若module未指定timer,则此调用无效
-func (s *tcpSession) RunAt(runAt time.Time, cb timer.OnTimeOut) (timerId int64) {
+func (s *tcpSession) RunAt(runAt time.Time, cb timer.OnTimeOut) (timerID int64) {
 	if s.module.Timer() == nil {
 		return -1
 	}
@@ -284,7 +284,7 @@ func (s *tcpSession) RunAt(runAt time.Time, cb timer.OnTimeOut) (timerId int64) 
 // RunAfter添加一个单次定时器,在Now + After时间触发cb
 // 注意:cb中的ctx为NetSession
 // 若module未指定timer,则此调用无效
-func (s *tcpSession) RunAfter(after time.Duration, cb timer.OnTimeOut) (timerId int64) {
+func (s *tcpSession) RunAfter(after time.Duration, cb timer.OnTimeOut) (timerID int64) {
 	if s.module.Timer() == nil {
 		return -1
 	}
@@ -294,7 +294,7 @@ func (s *tcpSession) RunAfter(after time.Duration, cb timer.OnTimeOut) (timerId 
 // RunEvery增加一个interval执行周期的定时器,在runAt触发第一次cb
 // 注意:cb中的ctx为NetSession
 // 若module未指定timer,则此调用无效
-func (s *tcpSession) RunEvery(runAt time.Time, interval time.Duration, cb timer.OnTimeOut) (timerId int64) {
+func (s *tcpSession) RunEvery(runAt time.Time, interval time.Duration, cb timer.OnTimeOut) (timerID int64) {
 	if s.module.Timer() == nil {
 		return -1
 	}

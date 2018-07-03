@@ -4,7 +4,7 @@ var (
 	packers = map[string]Packer{}
 )
 
-// RegisterPacker注册一个packer.
+// RegisterPacker 注册一个packer.
 // 如果name已存在,则panic
 func RegisterPacker(name string, p Packer) {
 	if _, ok := packers[name]; ok {
@@ -14,7 +14,7 @@ func RegisterPacker(name string, p Packer) {
 	packers[name] = p
 }
 
-// MustGetPacker获取指定名字对应的packer.
+// MustGetPacker 获取指定名字对应的packer.
 // 若未注册,则panic
 func MustGetPacker(name string) Packer {
 	if p, ok := packers[name]; ok {

@@ -2,7 +2,7 @@ package message_meta
 
 import "reflect"
 
-// MessageMeta为消息元对象
+// MessageMeta 为消息元对象
 // 主要和tlv Packer配合使用,让业务方无需关心消息的decode
 // 次模块参考自cellnet
 type MessageMeta struct {
@@ -13,7 +13,7 @@ type MessageMeta struct {
 	Type reflect.Type
 }
 
-// NewMessageMeta通过指定的id和对象类型,创建一个消息元,调用方负责保证id的唯一
+// NewMessageMeta 通过指定的id和对象类型,创建一个消息元,调用方负责保证id的唯一
 func NewMessageMeta(id uint32, pType reflect.Type) *MessageMeta {
 	return &MessageMeta{
 		ID:   id,
@@ -21,7 +21,7 @@ func NewMessageMeta(id uint32, pType reflect.Type) *MessageMeta {
 	}
 }
 
-// NewType创建一个该消息元对应的新类型对象
+// NewType 创建一个该消息元对应的新类型对象
 func (m *MessageMeta) NewType() interface{} {
 	if m.Type.Kind() == reflect.Ptr {
 		m.Type = m.Type.Elem()

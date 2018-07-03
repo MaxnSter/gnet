@@ -2,7 +2,7 @@ package worker_pool
 
 import "github.com/MaxnSter/gnet/iface"
 
-// Pool是一个goroutine pool,
+// Pool 是一个goroutine pool,
 // 单独使用可用于限制并发数量,
 // 作为gnet组件时还可以指定并发模型
 type Pool interface {

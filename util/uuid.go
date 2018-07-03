@@ -40,24 +40,24 @@ func init() {
 type uuidWorker struct {
 	guard     *sync.Mutex
 	timestamp int64
-	workerId  int64
+	workerID  int64
 	number    int64 //当前毫秒已经生成的序列号的个数(从0开始累加)
 }
 
-//指定一个节点id,返回该节点对应的uuid生成器
+// NewUUIDWorker 指定一个节点id,返回该节点对应的uuid生成器
 //使用多个uuidWorker时,id由调用者保证不重复
-func NewUUIDWorker(workerId int64) (*uuidWorker, error) {
-	if workerId < 0 || workerId > workerMax {
+func NewUUIDWorker(workerID int64) (*uuidWorker, error) {
+	if workerID < 0 || workerID > workerMax {
 		return nil, errors.New("error worker_pool id")
 	}
 
 	return &uuidWorker{
 		guard:    &sync.Mutex{},
-		workerId: workerId,
+		workerID: workerId,
 	}, nil
 }
 
-//生成一个uuid
+// GetUUID 生成一个uuid
 func (w *uuidWorker) GetUUID() int64 {
 	//TODO lockfree?
 	w.guard.Lock()
@@ -82,10 +82,10 @@ try:
 	}
 
 	// 见上文图
-	return int64((w.timestamp-epoch)<<timeShift | (w.workerId << workerShift) | (w.number))
+	return int64((w.timestamp-epoch)<<timeShift | (w.workerID << workerShift) | (w.number))
 }
 
-//gnet默认的uuidWorker生成一个uuid
+// GetUUID 使用默认的uuidWorker生成一个uuid
 func GetUUID() int64 {
 	return gUUIDWorker.GetUUID()
 }

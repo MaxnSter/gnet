@@ -7,7 +7,7 @@ import (
 	"github.com/MaxnSter/gnet/message_pack/message_meta"
 )
 
-// Packer定义了一个封包解包器
+// Packer 定义了一个封包解包器
 type Packer interface {
 
 	// Unpack从reader中读消息并解包,然后通过指定的coder和meta序列化出msg对象

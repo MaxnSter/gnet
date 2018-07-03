@@ -96,7 +96,7 @@ func (c *tcpClient) connect() {
 
 func (c *tcpClient) onNewSession(conn *net.TCPConn) {
 	sid := util.GetUUID()
-	s := newTcpSession(sid, conn, c, c.module, c.operator, func(s *tcpSession) {
+	s := newTCPSession(sid, conn, c, c.module, c.operator, func(s *tcpSession) {
 		c.sessions.Delete(s.ID())
 		c.wg.Done()
 	})

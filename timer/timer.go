@@ -20,7 +20,7 @@ import (
 type timerEntry struct {
 	expire   time.Time     //到期时间
 	interval time.Duration //重复间隔
-	timerId  int64         //返回给用户的id
+	timerID  int64         //返回给用户的id
 	index    int           //heap内部维护的index
 
 	ctx iface.Context
@@ -54,9 +54,9 @@ func (heap *timerHeap) Pop() interface{} {
 }
 
 //根据timerId来获取该timerId对应的timer在堆内的index
-func (heap timerHeap) getTimerIdx(timerId int64) int {
+func (heap timerHeap) getTimerIdx(timerID int64) int {
 	for i := range heap {
-		if heap[i].timerId == timerId {
+		if heap[i].timerID == timerID {
 			return heap[i].index
 		}
 	}
@@ -156,14 +156,14 @@ func (tm *timerManager) AddTimer(expire time.Time, interval time.Duration, ctx i
 	t.interval = interval
 	t.ctx = ctx
 	t.cb = cb
-	t.timerId = util.GetUUID()
+	t.timerID = util.GetUUID()
 	t.index = -1
 
 	tm.pause()
 	tm.timers.Push(t)
 	tm.resume()
 
-	return t.timerId
+	return t.timerID
 }
 
 // CancelTimer取消一个定时

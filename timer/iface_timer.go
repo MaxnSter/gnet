@@ -7,7 +7,7 @@ import (
 	"github.com/MaxnSter/gnet/worker_pool"
 )
 
-// OnTimeOut是定时器的callback
+// OnTimeOut 是定时器的callback
 type OnTimeOut func(time.Time, iface.Context)
 
 type TimerManager interface {
@@ -19,12 +19,12 @@ type TimerManager interface {
 	StopAsync() <-chan struct{}
 
 	// AddTimer添加一个定时任务,并返回该任务对应的id
-	AddTimer(expire time.Time, interval time.Duration, ctx iface.Context, cb OnTimeOut) (timerId int64)
+	AddTimer(expire time.Time, interval time.Duration, ctx iface.Context, cb OnTimeOut) (timerID int64)
 	// CancelTimer取消一个定时任务
-	CancelTimer(id int64)
+	CancelTimer(timerID int64)
 }
 
-// NewTimerManager通过指定的pool创建一个定时器组件
+// NewTimerManager 通过指定的pool创建一个定时器组件
 // pool用于派发所有OnTimeOut回调
 //TODO 当pool为nil,使用goroutine派发回调
 func NewTimerManager(pool worker_pool.Pool) TimerManager {
