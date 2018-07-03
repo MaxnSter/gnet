@@ -53,7 +53,7 @@ func NewUUIDWorker(workerID int64) (*uuidWorker, error) {
 
 	return &uuidWorker{
 		guard:    &sync.Mutex{},
-		workerID: workerId,
+		workerID: workerID,
 	}, nil
 }
 
