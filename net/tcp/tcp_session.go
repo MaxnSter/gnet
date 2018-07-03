@@ -103,8 +103,8 @@ func (s *tcpSession) start() {
 }
 
 // 关于正确关闭tcp连接的看法
-// correct  sender:		send() + shutdown(wr) + read()->0 + close socket
-// correct  receiver:	read()->0 + nothing more to send -> close socket
+// 发送方:		send() + shutdown(wr) + read()->0 + close socket
+// 接收方:		read()->0 + nothing more to send -> close socket
 // 流程如下->
 // sender:shutdown(wr) -> receiver:read(0) -> receiver:send over and close socket ->
 // sender:read(0) -> sender:close socket -> socket正常关闭
@@ -119,6 +119,7 @@ func (s *tcpSession) Stop() {
 
 		logger.WithField("sessionId", s.id).Debugln("session stopping...")
 
+		//用户回调
 		if s.operator.GetOnClose() != nil {
 			logger.WithField("sessionId", s.id).Debugln("session onClose, callback to user")
 			if s.module.Pool() == nil {
@@ -128,22 +129,22 @@ func (s *tcpSession) Stop() {
 			}
 		}
 
-		//close readLoop
+		//关闭读端
 		logger.WithField("sessionId", s.id).Debugln("close readLoop...")
 		close(s.closeCh)
 
-		//send signal to writeLoop, shutdown wr until nothing more to send
+		//关闭写端
 		logger.WithField("sessionId", s.id).Debugln("close WriteLoop...")
 		s.sendQue.Put(nil)
 
-		//wait for readLoop and writeLoop finish
+		//等待读写两端关闭完成
 		s.wg.Wait()
 
-		//close socket
+		//关闭文件描述符
 		logger.WithField("sessionId", s.id).Debugln("session closeDone, close raw socket")
 		s.raw.Close()
 
-		//tell sessionManager we are done
+		//通知sessionManager
 		if s.onCloseDone != nil {
 			logger.WithField("sessionId", s.id).Debugln("session closeDone, notify server")
 			s.onCloseDone(s)
@@ -154,10 +155,7 @@ func (s *tcpSession) Stop() {
 func (s *tcpSession) readLoop() {
 	defer func() {
 		if r := recover(); r != nil {
-			logger.WithFields(logrus.Fields{
-				"sessionId": s.id,
-				"error":     r}).Errorln("session readLoop error")
-
+			debug.PrintStack()
 			s.Stop()
 		}
 
@@ -168,12 +166,6 @@ func (s *tcpSession) readLoop() {
 	logger.WithField("sessionId", s.id).Debugln("session start readLoop")
 
 	for {
-		//select {
-		//case <-s.closeCh:
-		//	return
-		//default:
-		//}
-
 		msg, err := s.operator.Read(s.connWrap, s.module)
 		if err != nil {
 			//remote close socket
@@ -192,7 +184,10 @@ func (s *tcpSession) readLoop() {
 				}
 			}
 
-			panic(err)
+			//未知错误
+			logger.WithFields(logrus.Fields{"sessionId": s.id, "error": err}).Errorln("session readLoop error")
+			s.Stop()
+			return
 		}
 
 		s.operator.PostEvent(&gnet.EventWrapper{EventSession: s, Msg: msg}, s.module)
@@ -202,12 +197,6 @@ func (s *tcpSession) readLoop() {
 func (s *tcpSession) writeLoop() {
 	defer func() {
 		if r := recover(); r != nil {
-			logger.WithFields(logrus.Fields{
-				"sessionId": s.id,
-				"error":     r,
-			}).Errorln("session writeLoop error")
-
-			//通知readLoop 关闭
 			debug.PrintStack()
 			s.Stop()
 		}
@@ -237,17 +226,21 @@ func (s *tcpSession) writeLoop() {
 
 			err = s.operator.Write(s.connWrap, msg, s.module)
 			if err != nil {
-				panic(err)
+				logger.WithFields(logrus.Fields{"sessionId": s.id, "error": err}).
+					Errorln("session writeLoop error")
+				s.Stop()
+				return
 			}
-
 		}
 
 		err = s.connWrap.Flush()
 		if err != nil {
-			panic(err)
+			logger.WithFields(logrus.Fields{"sessionId": s.id, "error": err}).
+				Errorln("session writeLoop error")
+			s.Stop()
+			return
 		}
 	}
-
 }
 
 // RunInPool将f投入module对应的工作池中异步执行

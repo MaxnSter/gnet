@@ -112,7 +112,7 @@ func (c *tcpClient) setSignal() {
 
 	go func() {
 		s := <-sigCh
-		logger.WithField("signal", s).Infoln("c catch signal")
+		logger.WithField("signal", s).Infoln("catch signal")
 		c.Stop()
 	}()
 }

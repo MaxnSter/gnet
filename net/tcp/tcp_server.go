@@ -65,7 +65,7 @@ func (s *tcpServer) accept() {
 		logger.Infoln("acceptor stopped")
 	}()
 
-	logger.Infoln("s start running, waiting for connection...")
+	logger.Infoln("server start running, waiting for connection...")
 
 	var tempDelay time.Duration
 	for {
@@ -75,6 +75,7 @@ func (s *tcpServer) accept() {
 		default:
 		}
 
+		//TODO 并发数控制
 		conn, err := s.listener.AcceptTCP()
 		if err != nil {
 			if err, ok := err.(net.Error); ok && err.Temporary() {
