@@ -9,9 +9,20 @@ import (
 	"github.com/MaxnSter/gnet/codec"
 	"github.com/MaxnSter/gnet/logger"
 	"github.com/MaxnSter/gnet/message_pack/message_meta"
-	_ "github.com/MaxnSter/gnet/net/tcp"
 	"github.com/MaxnSter/gnet/plugin"
 	"github.com/MaxnSter/gnet/util"
+
+	// 注册coder组件
+	_ "github.com/MaxnSter/gnet/codec/codec_byte"
+
+	// 注册packer组件
+	_ "github.com/MaxnSter/gnet/message_pack/pack/pack_line"
+
+	// 注册网络组件
+	_ "github.com/MaxnSter/gnet/net/tcp"
+
+	// 注册goroutine pool组件
+	_ "github.com/MaxnSter/gnet/worker_pool/worker_session_race_other"
 )
 
 var (
@@ -50,7 +61,8 @@ func onMessage(ev gnet.Event) {
 // telnet 127.0.0.1 2007
 func main() {
 	//增加plugin拦截读操作
-	module := gnet.NewDefaultModule()
+	module := gnet.NewModule(gnet.WithPool("poolRaceOther"), gnet.WithCoder("byte"),
+		gnet.WithPacker("line"))
 	module.SetRdPlugin(plugin.BeforeReadFunc(beforeRead))
 
 	o := gnet.NewOperator(onMessage)
