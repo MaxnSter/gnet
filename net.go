@@ -17,7 +17,7 @@ type SessionManager interface {
 	GetSession(id int64) (NetSession, bool)
 }
 
-// ModuleRunner表示一个module持有者,提供module中的pool,timer的使用接口
+// ModuleRunner 表示一个module持有者,提供module中的pool,timer的使用接口
 type ModuleRunner interface {
 	// RunInPool将f投入module对应的工作池中异步执行
 	// 若module未设置pool,则直接执行f
@@ -27,21 +27,21 @@ type ModuleRunner interface {
 	// 注意:cb中的ctx为NetSession
 	// 若module未指定timer,则此调用无效
 	//TODO 若module未指定timer,则使用标准库的timer
-	RunAt(at time.Time, cb timer.OnTimeOut) (timerId int64)
+	RunAt(at time.Time, cb timer.OnTimeOut) (timerID int64)
 
 	// RunAfter添加一个单次定时器,在Now + After时间触发cb
 	// 注意:cb中的ctx为NetSession
 	// 若module未指定timer,则此调用无效
-	RunAfter(after time.Duration, cb timer.OnTimeOut) (timerId int64)
+	RunAfter(after time.Duration, cb timer.OnTimeOut) (timerID int64)
 
 	// RunEvery增加一个interval执行周期的定时器,在runAt触发第一次cb
 	// 注意:cb中的ctx为NetSession
 	// 若module未指定timer,则此调用无效
-	RunEvery(at time.Time, interval time.Duration, cb timer.OnTimeOut) (timerId int64)
+	RunEvery(at time.Time, interval time.Duration, cb timer.OnTimeOut) (timerID int64)
 
 	// CancelTimer取消timerId对应的定时器
 	// 若定时器已触发或timerId无效,则次调用无效
-	CancelTimer(timeId int64)
+	CancelTimer(timerID int64)
 }
 
 type NetSession interface {

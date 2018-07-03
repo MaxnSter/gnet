@@ -1,6 +1,6 @@
 package gnet
 
-// Event是onMessage回调中传入的参数
+// Event 是onMessage回调中传入的参数
 type Event interface {
 	// Session返回本条消息对应的NetSession
 	Session() NetSession
@@ -9,18 +9,18 @@ type Event interface {
 	Message() interface{}
 }
 
-// EventWrapper是Event的一个实现
+// EventWrapper 是Event的一个实现
 type EventWrapper struct {
 	EventSession NetSession  //本条消息对应的NetSession
 	Msg          interface{} //经过UnPack,decode之后的消息
 }
 
-// Session返回本条消息对应的NetSession
+// Session 返回本条消息对应的NetSession
 func (msg *EventWrapper) Session() NetSession {
 	return msg.EventSession
 }
 
-// Message返回经过unPack,decode之后的消息
+// Message 返回经过unPack,decode之后的消息
 func (msg *EventWrapper) Message() interface{} {
 	return msg.Msg
 }

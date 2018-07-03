@@ -7,9 +7,9 @@ import (
 	"github.com/MaxnSter/gnet/message_pack/message_meta"
 )
 
-// Operator可以理解网络组件和module的中间件.
-// 网络组件提供读写对象,module提供对消息流的"解释"(封解包,序列化,反序列化)
-// 同时,module无需知道读写对象是谁,也根本不知道网络组件的存在
+// Operator 可以理解网络组件和module的中间件.
+// 网络组件提供读写对象,module提供对消息流的"解释"(封解包,序列化,反序列化).
+// 同时,module无需知道读写对象是谁,也根本不知道网络组件的存在.
 // Operator负责从reader提供方读数据,使用module定义的"解释"方式,最后传入业务逻辑方.写操作同理
 type Operator interface {
 	// StartModule启动指定module中的所有组件
@@ -43,16 +43,16 @@ type Operator interface {
 	GetOnClose() OnClose
 }
 
-// OnMessage为接收消息的回调
+// OnMessage 为接收消息的回调
 type OnMessage func(ev Event)
 
-// OnConnected为连接建立的回调
+// OnConnected 为连接建立的回调
 type OnConnected func(session NetSession)
 
-// OnClose为连接关闭的回调
+// OnClose 为连接关闭的回调
 type OnClose func(session NetSession)
 
-// NewOperator通过指定的消息接收回调,创建一个Operator
+// NewOperator 通过指定的消息接收回调,创建一个Operator
 func NewOperator(cb OnMessage) Operator {
 	o := &operatorWrapper{}
 	o.SetOnMessage(cb)

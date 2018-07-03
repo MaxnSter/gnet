@@ -8,7 +8,7 @@ import (
 	"github.com/MaxnSter/gnet/worker_pool"
 )
 
-// Module是gnet的所有组件集合
+// Module 是gnet的所有组件集合
 type Module interface {
 	// SetPool设置一个注册过的goroutine pool组件,若组件未注册,则panic
 	SetPool(pool string)
@@ -54,42 +54,42 @@ type moduleWrapper struct {
 	wrPlugins []plugin.PluginBeforeWrite
 }
 
-// WithPool用于指定module的pool
+// WithPool 用于指定module的pool
 func WithPool(pool string) func(m *moduleWrapper) {
 	return func(m *moduleWrapper) {
 		m.SetPool(pool)
 	}
 }
 
-// WithPool用于指定module的coder
+// WithCoder 用于指定module的coder
 func WithCoder(coder string) func(m *moduleWrapper) {
 	return func(m *moduleWrapper) {
 		m.SetCoder(coder)
 	}
 }
 
-// WithPool用于指定module的packer
+// WithPacker 用于指定module的packer
 func WithPacker(packer string) func(m *moduleWrapper) {
 	return func(m *moduleWrapper) {
 		m.SetPacker(packer)
 	}
 }
 
-// WithPool用于指定module的RdPlugins
+// WithRdPlugins 用于指定module的RdPlugins
 func WithRdPlugins(plugins ...plugin.PluginBeforeRead) func(m *moduleWrapper) {
 	return func(m *moduleWrapper) {
 		m.SetRdPlugin(plugins...)
 	}
 }
 
-// WithPool用于指定module的WrPlugins
+// WithWrPlugins 用于指定module的WrPlugins
 func WithWrPlugins(plugins ...plugin.PluginBeforeWrite) func(m *moduleWrapper) {
 	return func(m *moduleWrapper) {
 		m.SetWrPlugin(plugins...)
 	}
 }
 
-// NewModule传入0个或多个option,返回一个gnet module对象
+// NewModule 传入0个或多个option,返回一个gnet module对象
 func NewModule(options ...func(m *moduleWrapper)) Module {
 	m := &moduleWrapper{}
 	for _, option := range options {
