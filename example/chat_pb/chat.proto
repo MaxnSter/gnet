@@ -1,5 +1,5 @@
 syntax = "proto3";
-package chat;
+package chat_pb;
 
 message ChatMessage {
     // 注意, 这里使用Id字段,我们实现了MetaIdentifier这个接口

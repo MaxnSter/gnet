@@ -10,7 +10,7 @@ import (
 	_ "github.com/MaxnSter/gnet/worker_pool/worker_session_race_self"
 
 	"github.com/MaxnSter/gnet"
-	"github.com/MaxnSter/gnet/example/chat"
+	"github.com/MaxnSter/gnet/example/chat_pb"
 )
 
 func main() {
@@ -21,13 +21,13 @@ func main() {
 	o := gnet.NewOperator(onMessage)
 	o.SetOnConnected(onConnected)
 
-	server := gnet.NewNetServer("tcp", "chat", m, o)
+	server := gnet.NewNetServer("tcp", "chat_pb", m, o)
 	server.ListenAndServe(":2007")
 }
 
 func onMessage(ev gnet.Event) {
 	switch msg := ev.Message().(type) {
-	case *chat.ChatMessage:
+	case *chat_pb.ChatMessage:
 		ev.Session().AccessManager().Broadcast(func(session gnet.NetSession) {
 			session.Send(msg)
 		})
@@ -37,8 +37,8 @@ func onMessage(ev gnet.Event) {
 }
 
 func onConnected(session gnet.NetSession) {
-	msg := &chat.ChatMessage{
-		Id:     chat.ChatMsgId,
+	msg := &chat_pb.ChatMessage{
+		Id:     chat_pb.ChatMsgId,
 		Talker: session.Raw().(net.Conn).LocalAddr().String(),
 		Msg:    "welcome",
 	}

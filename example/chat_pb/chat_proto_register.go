@@ -1,4 +1,4 @@
-package chat
+package chat_pb
 
 import (
 	"reflect"

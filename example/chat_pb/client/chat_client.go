@@ -12,7 +12,7 @@ import (
 	_ "github.com/MaxnSter/gnet/worker_pool/worker_session_race_other"
 
 	"github.com/MaxnSter/gnet"
-	"github.com/MaxnSter/gnet/example/chat"
+	"github.com/MaxnSter/gnet/example/chat_pb"
 	"github.com/MaxnSter/gnet/logger"
 )
 
@@ -27,15 +27,15 @@ func main() {
 		go loop(session)
 	})
 
-	client := gnet.NewNetClient("tcp", "chat", m, o)
+	client := gnet.NewNetClient("tcp", "chat_pb", m, o)
 	client.Connect(":2007")
 }
 
 func loop(s gnet.NetSession) {
 	scan := bufio.NewScanner(os.Stdin)
 	for scan.Scan() {
-		msg := &chat.ChatMessage{
-			Id:     chat.ChatMsgId,
+		msg := &chat_pb.ChatMessage{
+			Id:     chat_pb.ChatMsgId,
 			Talker: s.Raw().(net.Conn).RemoteAddr().String(),
 			Msg:    scan.Text(),
 		}
@@ -46,7 +46,7 @@ func loop(s gnet.NetSession) {
 
 func onMessage(ev gnet.Event) {
 	switch msg := ev.Message().(type) {
-	case *chat.ChatMessage:
+	case *chat_pb.ChatMessage:
 		logger.Infoln("recv msg:" + msg.Msg + " from:" + msg.Talker)
 	}
 }
