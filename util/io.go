@@ -2,7 +2,7 @@ package util
 
 import "io"
 
-//往指定writer中写数据,知道数据完全写入或者发生错误
+// WriteFull往指定writer中写数据,知道数据完全写入或者发生错误
 func WriteFull(writer io.Writer, data []byte) error {
 	dataLen := len(data)
 	written := 0
