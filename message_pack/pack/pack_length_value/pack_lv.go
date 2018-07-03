@@ -104,7 +104,7 @@ func (p *lvPacker) Pack(writer io.Writer, c codec.Coder, msg interface{}) error 
 	// 一直写,虽然runtime在write socket时也会保证全部写入(源码里有)
 	// 但这里的writer对应的不一定是io.conn,也有可能是包装buffer之后的
 	// writer,所以,还是需要调用writeFull滴
-	if err := util.WriteFull(writer, pack); err != nil {
+	if err = util.WriteFull(writer, pack); err != nil {
 		return err
 	}
 

@@ -111,7 +111,7 @@ func (p *tlvPacker) Pack(writer io.Writer, c codec.Coder, msg interface{}) error
 	copy(pack[(lengthBytes+typeBytes):], buf)
 
 	// 一直写,调用writeFull的原因见pack_type_length_value
-	if err := util.WriteFull(writer, pack); err != nil {
+	if err = util.WriteFull(writer, pack); err != nil {
 		return err
 	}
 
