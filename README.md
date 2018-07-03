@@ -17,47 +17,70 @@ gnet是一个简单易用,高度自由,完全组件化,高扩展性的golang网�
 --
 go get -u github.com/MaxnSter/gnet
 
-快速构建一个echo服务器
+快速构建一个chat服务器
 --
 ```go
 package main
+
 import (
+	"fmt"
+	"net"
+
 	"github.com/MaxnSter/gnet"
 
-	// 注册coder组件
-	_ "github.com/MaxnSter/gnet/codec/codec_byte"
-
-	// 注册packer组件
-	_ "github.com/MaxnSter/gnet/message_pack/pack/pack_line"
-
-	// 注册网络组件
-	_ "github.com/MaxnSter/gnet/net/tcp"
-
-	// 注册goroutine pool组件
-	_ "github.com/MaxnSter/gnet/worker_pool/worker_session_race_other"
+	//注册我们使用的组件
+	_ "github.com/MaxnSter/gnet/codec/codec_byte"                      //注册编解码组件
+	_ "github.com/MaxnSter/gnet/message_pack/pack/pack_line"           //注册封解包组件
+	_ "github.com/MaxnSter/gnet/net/tcp"                               //注册网络组件
+	_ "github.com/MaxnSter/gnet/worker_pool/worker_session_race_other" //注册并发池组件
 )
 
-func main() {
-	// 指定封包组件packer,本处使用文本协议
-	// 指定本次编解码组件coder
-	// 指定并发模型
-	// 最后,我们创建一个了module对象
-	module := gnet.NewModule(gnet.WithPacker("line"), gnet.WithCoder("byte"),
-		gnet.WithPool("sessionRaceOther"))
+// 加入聊天组
+func onConnected(s gnet.NetSession) {
+	msg := fmt.Sprintf("user:%s, join", s.Raw().(net.Conn).RemoteAddr())
 
-	// 传入业务逻辑回调,创建一个module控制器
-	operator := gnet.NewOperator(onMessage)
-
-	// 指定我们的网络组件,传入module和module控制器,我们创建了一个NetServer
-	server := gnet.NewNetServer("tcp", "echo", module, operator)
-
-	// 启动服务器,可以用nc,telnet,或client测试
-	server.ListenAndServe("127.0.0.1:8000")
+	//广播有用户加入
+	s.AccessManager().Broadcast(func(session gnet.NetSession) {
+		session.Send(msg)
+	})
 }
 
-// 业务逻辑入口
+// 离开聊天组
+func onClose(s gnet.NetSession) {
+	msg := fmt.Sprintf("user:%s, leave", s.Raw().(net.Conn).RemoteAddr())
+
+	//广播有用户离开
+	s.AccessManager().Broadcast(func(session gnet.NetSession) {
+		session.Send(msg)
+	})
+}
+
+// 接收聊天消息
 func onMessage(ev gnet.Event) {
-	ev.Session().Send(ev.Message())
+	s := ev.Session()
+	msg := fmt.Sprintf("user:%s, talk:%s", s.Raw().(net.Conn).RemoteAddr(),
+		ev.Message())
+
+	// 广播聊天消息给所有用户
+	s.AccessManager().Broadcast(func(session gnet.NetSession) {
+		session.Send(msg)
+	})
+}
+
+func main() {
+	//使用裸包编解码方式,文本协议的封解包方式,单EventLoop的并发模型,创建一个module
+	module := gnet.NewModule(gnet.WithCoder("byte"), gnet.WithPacker("line"),
+		gnet.WithPool("poolRaceOther"))
+
+	//创建module控制器,注册相关回调
+	operator := gnet.NewOperator(onMessage)
+	operator.SetOnConnected(onConnected)
+	operator.SetOnClose(onClose)
+
+	//使用tcp网络组件,传入module及其控制器,创建我们的gnet server
+	//启动成功后,使用telnet或netcat测试
+	server := gnet.NewNetServer("tcp", "chat", module, operator)
+	server.ListenAndServe("127.0.0.1:8000")
 }
 ```
 
@@ -73,7 +96,7 @@ gnet主要由三个模块构成:module,Operator,网络组件.使用者只需以�
 
     1."拆装module"(coder,packer,并发模型),
     2.注册"module控制器"(注册相关回调和hook),
-    3.把module及其控制器"装载"至指定组件上,启动!
+    3.把module及其控制器"装载"至指定网络组件上,启动!
 
     
 gnet提供的组件
@@ -95,7 +118,9 @@ gnet提供的组件
     tcp, ...(更多组件后期增加)
     
 - 回调及hook
-    消息接收回调(onMessage),
+
+    消息接收回调,连接建立或断开回调
+	通过添加hook,调用方可以实现packer,coder,消息元的运行时改动,甚至改变读写对象
 
 gnet的并发模型
 --
@@ -118,6 +143,7 @@ gnet示例
 
 目前展望
 --
+
 1.http网络组件支持
 
 2.rpc组件支持
