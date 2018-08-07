@@ -1,11 +1,11 @@
 package gnet
 
 import (
-	"io"
 	"time"
 
 	"github.com/MaxnSter/gnet/iface"
 	"github.com/MaxnSter/gnet/timer"
+	"net"
 )
 
 type SessionManager interface {
@@ -49,9 +49,8 @@ type NetSession interface {
 	iface.Property
 	ModuleRunner
 
-	// Raw返回当前NetSession对应的读写接口
-	// 为了降低调用者的使用权限,有意不返回net.conn,不过当然可以type assert...
-	Raw() io.ReadWriter
+	// Addr返回当前NetSession对应的Remote信息
+	Addr() net.Addr
 	// Send添加消息至发送队列,保证goroutine safe,不阻塞
 	Send(message interface{})
 	// AccessManager返回管理当前NetSession的SessionManager

@@ -36,7 +36,7 @@ func loop(s gnet.NetSession) {
 	for scan.Scan() {
 		msg := &chat_pb.ChatMessage{
 			Id:     chat_pb.ChatMsgId,
-			Talker: s.Raw().(net.Conn).RemoteAddr().String(),
+			Talker: s.Addr().(net.Conn).RemoteAddr().String(),
 			Msg:    scan.Text(),
 		}
 		s.Send(msg)

@@ -71,8 +71,8 @@ func (s *tcpSession) AccessManager() gnet.SessionManager {
 
 // Raw返回当前NetSession对应的读写接口
 // 为了降低调用者的使用权限,有意不返回net.conn,不过当然可以type assert...
-func (s *tcpSession) Raw() io.ReadWriter {
-	return s.raw
+func (s *tcpSession) Addr() net.Addr{
+	return s.raw.RemoteAddr()
 }
 
 // ID返回当前NetSession对应的ID标识

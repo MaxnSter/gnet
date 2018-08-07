@@ -192,7 +192,7 @@ func (s *tcpServer) Broadcast(fn func(session gnet.NetSession)) {
 		return
 	}
 
-	//FIXME callback hell
+	// FIXME callback hell
 	s.sessions.Range(func(id, session interface{}) bool {
 		s.module.Pool().Put(session, func(ctx iface.Context) {
 			fn(ctx.(gnet.NetSession))

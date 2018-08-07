@@ -49,6 +49,7 @@ func (p *linePacker) Unpack(reader io.Reader, c codec.Coder, meta *message_meta.
 	}
 
 	if err != nil {
+		//FIXME just a test for webSocket
 		return nil, err
 	}
 

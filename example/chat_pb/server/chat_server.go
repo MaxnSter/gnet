@@ -39,7 +39,7 @@ func onMessage(ev gnet.Event) {
 func onConnected(session gnet.NetSession) {
 	msg := &chat_pb.ChatMessage{
 		Id:     chat_pb.ChatMsgId,
-		Talker: session.Raw().(net.Conn).LocalAddr().String(),
+		Talker: session.Addr().(net.Conn).LocalAddr().String(),
 		Msg:    "welcome",
 	}
 
