@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"github.com/MaxnSter/gnet"
 
 	// 注册coder组件
@@ -24,12 +25,15 @@ func onMessage(ev gnet.Event) {
 // telnet 127.0.0.1 2007
 // nc 127.0.0.1 2007
 func main() {
+	var addr = flag.String("addr", ":8080", "listening addr")
+	flag.Parse()
+
 	// 指定封包组件packer,本处使用文本协议
 	// 指定本次编解码组件coder
 	// 指定goroutine池pool
 	// 最后,我们创建一个了module对象
 	module := gnet.NewModule(gnet.WithPacker("line"), gnet.WithCoder("byte"),
-		gnet.WithPool("sessionRaceOther"))
+		gnet.WithPool("poolRaceOther"))
 
 	// 传入业务逻辑回调,创建一个module控制器
 	operator := gnet.NewOperator(onMessage)
@@ -38,5 +42,5 @@ func main() {
 	server := gnet.NewNetServer("tcp", "echo", module, operator)
 
 	// 启动服务器,可以用nc,telnet,或client测试
-	server.ListenAndServe(":2007")
+	server.ListenAndServe(*addr)
 }
