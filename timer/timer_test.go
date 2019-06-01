@@ -7,26 +7,26 @@ import (
 	"time"
 
 	"github.com/MaxnSter/gnet/iface"
-	"github.com/MaxnSter/gnet/worker_pool"
-	_ "github.com/MaxnSter/gnet/worker_pool/worker_session_norace"
+	"github.com/MaxnSter/gnet/pool"
+	_ "github.com/MaxnSter/gnet/pool/pool_norace"
 	"github.com/stretchr/testify/assert"
 )
 
-var wPool worker_pool.Pool
+var wPool pool.Pool
 
 func TestNewTimerManager(t *testing.T) {
-	wPool = worker_pool.MustGetWorkerPool("poolNoRace")
+	wPool = pool.MustGetWorkerPool("poolNoRace")
 	wPool.Start()
 
-	tw := NewTimerManager(wPool)
+	tw := NewWithPool(wPool)
 	assert.NotNil(t, tw, "tw should not be nil")
 }
 
 func TestTimerManager_AddTimer(t *testing.T) {
-	wPool = worker_pool.MustGetWorkerPool("poolNoRace")
+	wPool = pool.MustGetWorkerPool("poolNoRace")
 	wPool.Start()
 
-	tw := NewTimerManager(wPool)
+	tw := NewWithPool(wPool)
 	assert.NotNil(t, tw, "tw should not be nil")
 	tw.Start()
 
@@ -57,10 +57,10 @@ func TestTimerManager_AddTimer(t *testing.T) {
 }
 
 func TestTimerManager_Stop(t *testing.T) {
-	wPool = worker_pool.MustGetWorkerPool("poolNoRace")
+	wPool = pool.MustGetWorkerPool("poolNoRace")
 	wPool.Start()
 
-	tw := NewTimerManager(wPool)
+	tw := NewWithPool(wPool)
 	assert.NotNil(t, tw, "tw should not be nil")
 	tw.Start()
 

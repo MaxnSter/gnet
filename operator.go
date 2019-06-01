@@ -1,170 +1,96 @@
 package gnet
 
 import (
+	"github.com/MaxnSter/gnet/meta"
+	"github.com/MaxnSter/gnet/pool"
 	"io"
-
-	"github.com/MaxnSter/gnet/iface"
-	"github.com/MaxnSter/gnet/message_pack/message_meta"
 )
 
-// Operator 可以理解网络组件和module的中间件.
-// 网络组件提供读写对象,module提供对消息流的"解释"(封解包,序列化,反序列化).
-// 同时,module无需知道读写对象是谁,也根本不知道网络组件的存在.
-// Operator负责从reader提供方读数据,使用module定义的"解释"方式,最后传入业务逻辑方.写操作同理
-type Operator interface {
-	// StartModule启动指定module中的所有组件
-	StartModule(module Module)
-	// StopModule停止指定module中的组件,调用法阻塞直到module完全关闭
-	StopModule(module Module)
-	// StopModuleAsync停止指定module中的组件并立即返回
-	StopModuleAsync(module Module) []<-chan struct{}
-
-	// PostEvent将Event派发至指定module的goroutine pool中
-	PostEvent(ev Event, module Module)
-
-	// Read从网络组件提供的reader中读数据,并从使用module提供的packer和coder的到一个完整的消息对象
-	Read(reader io.Reader, module Module) (interface{}, error)
-	// Write使用module提供的packer和coder得到最终写入数据,并从网络组件提供的writer中写数据
-	Write(writer io.Writer, msg interface{}, module Module) error
-
-	//TODO 从Operator的作用来看,回调作为module组件似乎更合理
-	// SetOnMessage设置消息接收的回调
-	SetOnMessage(onMessage OnMessage)
-	// SetOnConnected设置连接建立的回调
-	SetOnConnected(onConnected OnConnected)
-	// SetOnClose设置连接关闭的回调
-	SetOnClose(onClose OnClose)
-
-	// GetOnMessage返回已注册的消息接收回调
-	GetOnMessage() OnMessage
-	// GetOnConnected返回已注册的连接建立回调
-	GetOnConnected() OnConnected
-	// GetOnClose返回已注册的连接关闭回调
-	GetOnClose() OnClose
+type Callback struct {
+	OnSession     func(NetSession)
+	OnMessage     func(Event)
+	OnSessionStop func(NetSession)
 }
 
-// OnMessage 为接收消息的回调
-type OnMessage func(ev Event)
+type ReadInterceptor struct {
+	PreRead  func(r io.Reader, m meta.Meta) (io.Reader, meta.Meta)
+	InRead   func(buf []byte, m meta.Meta) ([]byte, meta.Meta)
+	PostRead func(msg interface{}) interface{}
+}
 
-// OnConnected 为连接建立的回调
-type OnConnected func(session NetSession)
+type WriteInterceptor struct {
+	PreWrite func(w io.Writer, msg interface{}) (io.Writer, interface{})
+	InWrite  func(w io.Writer, buf []byte) (io.Writer, []byte)
+}
 
-// OnClose 为连接关闭的回调
-type OnClose func(session NetSession)
+type Operator interface {
+	PostEvent(ev Event)
+	Read(reader io.Reader) (interface{}, error)
+	Write(writer io.Writer, msg interface{}) error
 
-// NewOperator 通过指定的消息接收回调,创建一个Operator
-func NewOperator(cb OnMessage) Operator {
-	o := &operatorWrapper{}
-	o.SetOnMessage(cb)
-	return o
+	GetCallback() Callback
 }
 
 type operatorWrapper struct {
-	OnMessageFunc   OnMessage
-	OnConnectedFunc OnConnected
-	OnCloseFunc     OnClose
+	Module
+
+	Callback
+	ReadInterceptor
+	WriteInterceptor
 }
 
-// StartModule启动指定module中的所有组件
-func (o *operatorWrapper) StartModule(m Module) {
-	if m.Pool() != nil {
-		m.Pool().Start()
-	}
-
-	if m.Timer() != nil {
-		m.Timer().Start()
-	}
+func (s *operatorWrapper) GetCallback() Callback {
+	return s.Callback
 }
 
-// StopModule停止指定module中的组件,调用法阻塞直到module完全关闭
-func (o *operatorWrapper) StopModule(m Module) {
-	if m.Timer() != nil {
-		m.Timer().Stop()
-	}
-
-	if m.Pool() != nil {
-		m.Pool().Stop()
+func (s *operatorWrapper) PostEvent(ev Event) {
+	if s.OnMessage != nil {
+		s.Pool().Put(func() {
+			s.OnMessage(ev)
+		}, pool.WithIdentify(ev.Session().(interface{ ID() uint64 })))
 	}
 }
 
-// StopModuleAsync停止指定module中的组件并立即返回
-func (o *operatorWrapper) StopModuleAsync(m Module) (stops []<-chan struct{}) {
-	if m.Timer() != nil {
-		stops = append(stops, m.Timer().StopAsync())
+func (s *operatorWrapper) Read(reader io.Reader) (interface{}, error) {
+	r, m := reader, meta.Meta(nil)
+	if s.PreRead != nil {
+		r, m = s.PreRead(r, m)
 	}
 
-	if m.Pool() != nil {
-		stops = append(stops, m.Pool().StopAsync())
+	buf, err := s.Packer().Unpack(reader)
+	if err != nil {
+		return nil, err
 	}
-	return
-}
-
-// PostEvent将Event派发至指定module的goroutine pool中
-func (o *operatorWrapper) PostEvent(ev Event, module Module) {
-	if module.Pool() == nil {
-		o.OnMessageFunc(ev)
-		return
-	}
-	module.Pool().Put(ev.Session(), func(_ iface.Context) {
-		o.OnMessageFunc(ev)
-	})
-}
-
-// Read从网络组件提供的reader中读数据,并从使用module提供的packer和coder的到一个完整的消息对象
-func (o *operatorWrapper) Read(reader io.Reader, module Module) (interface{}, error) {
-	var meta *message_meta.MessageMeta
-	plugins := module.RdPlugins()
-	c := module.Coder()
-
-	if len(plugins) > 0 {
-		for _, plugin := range plugins {
-			reader, c, meta = plugin.BeforeRead(reader, c, meta)
-		}
+	if s.InRead != nil {
+		buf, m = s.InRead(buf, m)
 	}
 
-	return module.Packer().Unpack(reader, c, meta)
-}
-
-// Write使用module提供的packer和coder得到最终写入数据,并从网络组件提供的writer中写数据
-func (o *operatorWrapper) Write(writer io.Writer, msg interface{}, module Module) error {
-	plugins := module.WrPlugins()
-	c := module.Coder()
-
-	if len(plugins) > 0 {
-		for _, plugin := range plugins {
-			writer, c, msg = plugin.BeforeWrite(writer, c, msg)
-		}
+	var msg interface{}
+	if m != nil {
+		msg = m.New()
+	}
+	if err = s.Coder().Decode(buf, msg); err != nil {
+		return nil, err
+	}
+	if s.PostRead != nil {
+		msg = s.PostRead(msg)
 	}
 
-	return module.Packer().Pack(writer, c, msg)
+	return msg, nil
 }
 
-// SetOnMessage设置接收的回调
-func (o *operatorWrapper) SetOnMessage(onMessage OnMessage) {
-	o.OnMessageFunc = onMessage
-}
+func (s *operatorWrapper) Write(writer io.Writer, msg interface{}) error {
+	if s.PreWrite != nil {
+		writer, msg = s.PreWrite(writer, msg)
+	}
 
-// GetOnMessage返回已注册的消息接收回调
-func (o *operatorWrapper) GetOnMessage() OnMessage {
-	return o.OnMessageFunc
-}
+	buf, err := s.Coder().Encode(msg)
+	if err != nil {
+		return err
+	}
 
-// SetOnConnected设置连接建立的回调
-func (o *operatorWrapper) SetOnConnected(onConnected OnConnected) {
-	o.OnConnectedFunc = onConnected
-}
-
-// GetOnConnected返回已注册的连接建立回调
-func (o *operatorWrapper) GetOnConnected() OnConnected {
-	return o.OnConnectedFunc
-}
-
-// SetOnClose设置连接关闭的回调
-func (o *operatorWrapper) SetOnClose(onClose OnClose) {
-	o.OnCloseFunc = onClose
-}
-
-// GetOnClose返回已注册的连接关闭回调
-func (o *operatorWrapper) GetOnClose() OnClose {
-	return o.OnCloseFunc
+	if s.InWrite != nil {
+		writer, buf = s.InWrite(writer, buf)
+	}
+	return s.Packer().Pack(writer, buf)
 }

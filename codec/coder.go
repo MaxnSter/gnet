@@ -10,5 +10,5 @@ type Coder interface {
 	Decode(data []byte, v interface{}) (err error)
 
 	// name of the coder
-	TypeName() string
+	String() string
 }

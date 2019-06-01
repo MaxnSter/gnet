@@ -1,56 +1,50 @@
 package gnet
 
-var (
-	netServerCreator = map[string]func(string, Module, Operator) NetServer{}
-	netClientCreator = map[string]func(string, Module, Operator) NetClient{}
+import (
+	"github.com/MaxnSter/gnet/codec"
+	gnet "github.com/MaxnSter/gnet/net"
+	"github.com/MaxnSter/gnet/packer"
+	"github.com/MaxnSter/gnet/pool"
+	"net"
 )
 
-// RegisterServerCreator 注册一个gnet server的Creator
-func RegisterServerCreator(creatorName string, f func(string, Module, Operator) NetServer) {
-	if _, ok := netServerCreator[creatorName]; ok {
-		panic("duplicate server creator register:" + creatorName)
-	} else {
-		netServerCreator[creatorName] = f
+func NewGnetServer(l net.Listener, m Module, o Operator) NetServer {
+	return gnet.NewServer(l, m, o)
+}
+
+func NewGnetClient(conn net.Conn, m Module, o Operator) NetClient {
+	return gnet.NewClient(conn, m, o)
+}
+
+func NewModule(pool pool.Pool, c codec.Coder, packer packer.Packer) Module {
+	return &moduleWrapper{
+		pool:   pool,
+		coder:  c,
+		packer: packer,
 	}
 }
 
-// RegisterClientCreator 注册一个gnet client的Creator
-func RegisterClientCreator(creatorName string, f func(string, Module, Operator) NetClient) {
-	if _, ok := netClientCreator[creatorName]; ok {
-		panic("duplicate client creator register:" + creatorName)
-	} else {
-		netClientCreator[creatorName] = f
+func NewOperator(m Module, cb Callback, opts ...func(Operator)) Operator {
+	s := &operatorWrapper{
+		Module:   m,
+		Callback: cb,
+	}
+
+	for _, f := range opts {
+		f(s)
+	}
+	return s
+}
+
+func WithReadHooks(i ReadInterceptor) func(Operator) {
+	return func(operator Operator) {
+		operator.(*operatorWrapper).ReadInterceptor = i
 	}
 }
 
-// NewNetServer 通过指定的网络组件,以及Module和Operator,返回一个NetServer
-// 若指定的网络组件未注册,则panic
-func NewNetServer(network, name string, module Module, operator Operator) NetServer {
-	checkValid(module, operator)
-	if creator, ok := netServerCreator[network]; !ok {
-		panic("network:" + network + " not register")
-	} else {
-		return creator(name, module, operator)
+func WithWriteHooks(i WriteInterceptor) func(Operator) {
+	return func(operator Operator) {
+		operator.(*operatorWrapper).WriteInterceptor = i
 	}
 }
 
-// NewNetClient 通过指定的网络组件,以及Module和Operator,返回一个NetClient
-// 若指定的网络组件未注册,则panic
-func NewNetClient(network, name string, module Module, operator Operator) NetClient {
-	checkValid(module, operator)
-	if creator, ok := netClientCreator[network]; !ok {
-		panic("network:" + network + " not register")
-	} else {
-		return creator(name, module, operator)
-	}
-}
-
-func checkValid(m Module, o Operator) {
-	if m.Coder() == nil || m.Packer() == nil {
-		panic("coder and pack can not be nil")
-	}
-
-	if o.GetOnMessage() == nil {
-		panic("onMessage can not be nil")
-	}
-}
