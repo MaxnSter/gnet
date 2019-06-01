@@ -2,6 +2,7 @@ package gnet
 
 import (
 	"github.com/MaxnSter/gnet/codec"
+	"github.com/MaxnSter/gnet/meta"
 	gnet "github.com/MaxnSter/gnet/net"
 	"github.com/MaxnSter/gnet/packer"
 	"github.com/MaxnSter/gnet/pool"
@@ -28,6 +29,7 @@ func NewOperator(m Module, cb Callback, opts ...func(Operator)) Operator {
 	s := &operatorWrapper{
 		Module:   m,
 		Callback: cb,
+		meta:     nil,
 	}
 
 	for _, f := range opts {
@@ -48,3 +50,8 @@ func WithWriteHooks(i WriteInterceptor) func(Operator) {
 	}
 }
 
+func WithMeta(m meta.Meta) func(Operator) {
+	return func(operator Operator) {
+		operator.(*operatorWrapper).meta = m
+	}
+}
