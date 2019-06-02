@@ -103,6 +103,7 @@ func (svc *server) serve() {
 				select {
 				case <-svc.done:
 					return nil
+				default:
 				}
 				return errors.Wrap(err, "accept failed")
 			}
