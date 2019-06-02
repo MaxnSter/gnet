@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	poolName = "poolRaceSelf"
+	Name = "poolRaceSelf"
 
 	workerNum = 20
 	queueSize = 256
@@ -21,7 +21,7 @@ func New() pool.Pool {
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
-	pool.RegisterWorkerPool(poolName, newPoolRaceSelf)
+	pool.RegisterWorkerPool(Name, New)
 }
 
 //session存在data race现象,并且几乎没有其他session交互的情况
@@ -33,7 +33,7 @@ type poolRaceSelf struct {
 }
 
 func (p *poolRaceSelf) String() string {
-	return poolName
+	return Name
 }
 
 func newPoolRaceSelf() pool.Pool {
