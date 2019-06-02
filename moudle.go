@@ -24,7 +24,7 @@ type moduleWrapper struct {
 	coder  codec.Coder
 	packer packer.Packer
 
-	timer timer.Manager
+	timer timer.Timer
 }
 
 func (m *moduleWrapper) Pool() pool.Pool {

@@ -1,4 +1,4 @@
-package timer
+package internal
 
 import "time"
 
@@ -7,18 +7,18 @@ This code is based on the following resources:
 source code:	https://play.golang.org/p/Ys9qqanqmU
 discuss:	https://groups.google.com/forum/#!msg/golang-dev/c9UUfASVPoU/tlbK2BpFEwAJ
 */
-type safetimer struct {
+type SafeTimer struct {
 	*time.Timer
 	bScr bool
 }
 
 //saw channel read,在drain timer对应的ch后一定要调用
-func (t *safetimer) scr() {
+func (t *SafeTimer) Scr() {
 	t.bScr = true
 }
 
 //重置定时器
-func (t *safetimer) safeReset(d time.Duration) bool {
+func (t *SafeTimer) SafeReset(d time.Duration) bool {
 	ret := t.Stop()
 
 	//ret为true,表示timer并没有active,此时删除成功
@@ -34,8 +34,8 @@ func (t *safetimer) safeReset(d time.Duration) bool {
 	return ret
 }
 
-func newSafeTimer(d time.Duration) *safetimer {
-	return &safetimer{
+func NewSafeTimer(d time.Duration) *SafeTimer {
+	return &SafeTimer{
 		Timer: time.NewTimer(d),
 	}
 }
