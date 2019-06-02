@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	poolName  = "poolRaceOther"
+	Name      = "poolRaceOther"
 	queueSize = 1024
 )
 
@@ -15,7 +15,7 @@ func New() pool.Pool {
 }
 
 func init() {
-	pool.RegisterWorkerPool(poolName, newPoolRaceOther)
+	pool.RegisterWorkerPool(Name, New)
 }
 
 //single EvnetLoop,保证绝对goroutine safe,可用于无锁服务
@@ -25,7 +25,7 @@ type poolRaceOther struct {
 
 // TypeName返回pool的唯一表示
 func (p *poolRaceOther) String() string {
-	return poolName
+	return Name
 }
 
 func newPoolRaceOther() pool.Pool {

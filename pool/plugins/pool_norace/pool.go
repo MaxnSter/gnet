@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	poolName                        = "poolNoRace"
+	Name                            = "poolNoRace"
 	DefaultMaxGoroutinesAmount      = 256 * 1024
 	DefaultMaxGoroutineIdleDuration = 10 * time.Second
 )
@@ -18,7 +18,7 @@ func New() pool.Pool {
 }
 
 func init() {
-	pool.RegisterWorkerPool(poolName, newPoolNoRace)
+	pool.RegisterWorkerPool(Name, New)
 }
 
 type goChan struct {
@@ -44,7 +44,7 @@ type poolNoRace struct {
 
 // TypeName返回pool的唯一表示
 func (p *poolNoRace) String() string {
-	return poolName
+	return Name
 }
 
 func newPoolNoRace() pool.Pool {
