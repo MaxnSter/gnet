@@ -8,5 +8,6 @@ require (
 	github.com/golang/protobuf v1.3.1
 	github.com/gorilla/websocket v1.4.0
 	github.com/pkg/errors v0.8.1
+	github.com/stretchr/testify v1.3.0
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
 )
