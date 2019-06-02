@@ -46,4 +46,3 @@ func NewModule(pool pool.Pool, c codec.Coder, packer packer.Packer) Module {
 		packer: packer,
 	}
 }
-
