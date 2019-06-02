@@ -58,7 +58,7 @@ func NewUUIDWorker(workerID int64) (*uuidWorker, error) {
 }
 
 // GetUUID 生成一个uuid
-func (w *uuidWorker) GetUUID() int64 {
+func (w *uuidWorker) GetUUID() uint64 {
 	//TODO lockfree?
 	w.guard.Lock()
 	defer w.guard.Unlock()
@@ -82,10 +82,10 @@ try:
 	}
 
 	// 见上文图
-	return int64((w.timestamp-epoch)<<timeShift | (w.workerID << workerShift) | (w.number))
+	return uint64((w.timestamp-epoch)<<timeShift | (w.workerID << workerShift) | (w.number))
 }
 
 // GetUUID 使用默认的uuidWorker生成一个uuid
-func GetUUID() int64 {
+func GetUUID() uint64 {
 	return gUUIDWorker.GetUUID()
 }
