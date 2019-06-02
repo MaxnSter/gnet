@@ -1,4 +1,4 @@
-package net
+package gnet
 
 import (
 	"bufio"
@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/MaxnSter/gnet"
 	"github.com/MaxnSter/gnet/util"
 )
 
@@ -28,8 +27,8 @@ type session struct {
 	guard    sync.Mutex
 	priority map[string]interface{}
 
-	manager gnet.SessionManager
-	gnet.Operator
+	manager  SessionManager
+	operator Operator
 }
 
 func (s *session) ID() uint64 {
@@ -54,7 +53,7 @@ func (s *session) Send(message interface{}) {
 	s.wrQueue.Put(message)
 }
 
-func (s *session) AccessManager() gnet.SessionManager {
+func (s *session) AccessManager() SessionManager {
 	return s.manager
 }
 
@@ -72,7 +71,8 @@ func (s *session) Stop() {
 	})
 }
 
-func newSession(identify uint64, conn net.Conn, manager gnet.SessionManager) gnet.NetSession {
+func newSession(identify uint64, conn net.Conn, manager SessionManager,
+	o Operator) NetSession {
 	return &session{
 		identify: identify,
 		rd:       bufio.NewReader(conn),
@@ -83,7 +83,7 @@ func newSession(identify uint64, conn net.Conn, manager gnet.SessionManager) gne
 		grace:    time.Second * 3,
 		priority: map[string]interface{}{},
 		manager:  manager,
-		Operator: nil,
+		operator: o,
 	}
 }
 
@@ -92,7 +92,7 @@ func (s *session) Run() {
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 
-	if cb := s.GetCallback().OnSession; cb != nil {
+	if cb := s.operator.GetCallback().OnSession; cb != nil {
 		cb(s)
 	}
 
@@ -107,7 +107,7 @@ func (s *session) Run() {
 
 	wg.Wait()
 
-	if cb := s.GetCallback().OnSessionStop; cb != nil {
+	if cb := s.operator.GetCallback().OnSessionStop; cb != nil {
 		cb(s)
 	}
 }
@@ -115,7 +115,7 @@ func (s *session) Run() {
 func (s *session) readLoop() {
 	readF := func() error {
 		for {
-			msg, err := s.Operator.Read(s.rd)
+			msg, err := s.operator.Read(s.rd)
 			if err != nil {
 				if err == io.EOF {
 					return nil
@@ -132,13 +132,13 @@ func (s *session) readLoop() {
 				return errors.Wrap(err, "read failed")
 			}
 
-			s.Operator.PostEvent(&gnet.EventWrapper{EventSession: s, Msg: msg})
+			s.operator.PostEvent(&eventWrapper{eventSession: s, msg: msg})
 		}
 	}
 
 	finish := func(err error) error {
 		if err != nil {
-			glog.Error("+%v", err)
+			glog.Errorf("+%v", err)
 		}
 
 		s.Stop()
@@ -158,8 +158,9 @@ func (s *session) writeLoop() {
 			}
 
 			for i := 0; i < len(items); i++ {
-				err := s.Operator.Write(s.wr, items[i])
+				err := s.operator.Write(s.wr, items[i])
 				if err != nil {
+					s.wr.Flush()
 					return errors.Wrap(err, "write failed")
 				}
 			}
@@ -167,13 +168,13 @@ func (s *session) writeLoop() {
 			if err != nil {
 				return errors.Wrap(err, "flush writer error")
 			}
-
+			items = items[0:0]
 		}
 	}
 
 	finish := func(err error) error {
 		if err != nil {
-			glog.Error("+%v", err)
+			glog.Errorf("+%v", err)
 		}
 
 		s.Stop()

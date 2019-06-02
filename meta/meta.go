@@ -2,7 +2,6 @@ package meta
 
 import "reflect"
 
-// meta works well with type_length_value plugins
 type Meta interface {
 	Identify() uint32
 	Type() reflect.Type

@@ -1,4 +1,4 @@
-package pack_length_value
+package packer_length_value
 
 import (
 	"encoding/binary"

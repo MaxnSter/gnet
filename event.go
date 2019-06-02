@@ -9,18 +9,17 @@ type Event interface {
 	Message() interface{}
 }
 
-// EventWrapper 是Event的一个实现
-type EventWrapper struct {
-	EventSession NetSession  //本条消息对应的NetSession
-	Msg          interface{} //经过UnPack,decode之后的消息
+type eventWrapper struct {
+	eventSession NetSession  //本条消息对应的NetSession
+	msg          interface{} //经过UnPack,decode之后的消息
 }
 
 // Session 返回本条消息对应的NetSession
-func (msg *EventWrapper) Session() NetSession {
-	return msg.EventSession
+func (msg *eventWrapper) Session() NetSession {
+	return msg.eventSession
 }
 
 // Message 返回经过unPack,decode之后的消息
-func (msg *EventWrapper) Message() interface{} {
-	return msg.Msg
+func (msg *eventWrapper) Message() interface{} {
+	return msg.msg
 }

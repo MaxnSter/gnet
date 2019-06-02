@@ -27,7 +27,6 @@ type moduleWrapper struct {
 	timer timer.Manager
 }
 
-
 func (m *moduleWrapper) Pool() pool.Pool {
 	return m.pool
 }
@@ -39,3 +38,12 @@ func (m *moduleWrapper) Coder() codec.Coder {
 func (m *moduleWrapper) Packer() packer.Packer {
 	return m.packer
 }
+
+func NewModule(pool pool.Pool, c codec.Coder, packer packer.Packer) Module {
+	return &moduleWrapper{
+		pool:   pool,
+		coder:  c,
+		packer: packer,
+	}
+}
+

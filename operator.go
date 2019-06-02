@@ -2,7 +2,7 @@ package gnet
 
 import (
 	"github.com/MaxnSter/gnet/meta"
-	"github.com/MaxnSter/gnet/packer/plugins/pack_type_length_value"
+	"github.com/MaxnSter/gnet/packer/plugins/packer_type_length_value"
 	"github.com/MaxnSter/gnet/pool"
 	"io"
 )
@@ -41,6 +41,37 @@ type operatorWrapper struct {
 	meta meta.Meta
 }
 
+func NewOperator(m Module, cb Callback, opts ...func(Operator)) Operator {
+	s := &operatorWrapper{
+		Module:   m,
+		Callback: cb,
+		meta:     nil,
+	}
+
+	for _, f := range opts {
+		f(s)
+	}
+	return s
+}
+
+func WithReadHooks(i ReadInterceptor) func(Operator) {
+	return func(operator Operator) {
+		operator.(*operatorWrapper).ReadInterceptor = i
+	}
+}
+
+func WithWriteHooks(i WriteInterceptor) func(Operator) {
+	return func(operator Operator) {
+		operator.(*operatorWrapper).WriteInterceptor = i
+	}
+}
+
+func WithMeta(m meta.Meta) func(Operator) {
+	return func(operator Operator) {
+		operator.(*operatorWrapper).meta = m
+	}
+}
+
 func (s *operatorWrapper) GetCallback() Callback {
 	return s.Callback
 }
@@ -63,9 +94,9 @@ func (s *operatorWrapper) Read(reader io.Reader) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	if s.Packer().String() == pack_type_length_value.Name {
+	if s.Packer().String() == packer_type_length_value.Name {
 		var msgId uint32
-		msgId, buf = pack_type_length_value.UnpackMsgId(buf)
+		msgId, buf = packer_type_length_value.UnpackMsgId(buf)
 
 		m = meta.MustGetMsgMeta(msgId)
 	}
@@ -101,9 +132,9 @@ func (s *operatorWrapper) Write(writer io.Writer, msg interface{}) error {
 		writer, buf = s.InWrite(writer, buf)
 	}
 
-	if s.Packer().String() == pack_type_length_value.Name {
+	if s.Packer().String() == packer_type_length_value.Name {
 		msgId := msg.(meta.Meta).Identify()
-		buf = pack_type_length_value.PackMsgId(msgId, buf)
+		buf = packer_type_length_value.PackMsgId(msgId, buf)
 	}
 	return s.Packer().Pack(writer, buf)
 }

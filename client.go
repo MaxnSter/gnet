@@ -1,7 +1,6 @@
-package net
+package gnet
 
 import (
-	"github.com/MaxnSter/gnet"
 	"github.com/MaxnSter/gnet/pool"
 	"github.com/MaxnSter/gnet/util"
 	"net"
@@ -12,21 +11,21 @@ import (
 )
 
 type client struct {
-	gnet.NetSession
-	gnet.Module
-	gnet.Operator
+	NetSession
+	Module
+	operator Operator
 
 	sync.Once
 }
 
-func NewClient(conn net.Conn, m gnet.Module, o gnet.Operator) gnet.NetClient {
+func NewClient(conn net.Conn, m Module, o Operator) NetClient {
 	c := &client{
 		Module:   m,
-		Operator: o,
+		operator: o,
 	}
 
 	id := util.GetUUID()
-	c.NetSession = newSession(id, conn, c)
+	c.NetSession = newSession(id, conn, c, o)
 	return c
 }
 
@@ -34,7 +33,9 @@ func (c *client) Run() {
 	c.Once.Do(func() {
 		go c.signal()
 
+		c.Pool().Run()
 		c.NetSession.Run()
+		c.Pool().Stop()
 	})
 }
 
@@ -47,13 +48,13 @@ func (c *client) signal() {
 	c.Stop()
 }
 
-func (c *client) Broadcast(f func(session gnet.NetSession)) {
+func (c *client) Broadcast(f func(session NetSession)) {
 	c.Pool().Put(func() {
 		f(c)
 	}, pool.WithIdentify(c))
 }
 
-func (c *client) GetSession(id uint64) (gnet.NetSession, bool) {
+func (c *client) GetSession(id uint64) (NetSession, bool) {
 	if c.ID() != id {
 		return nil, false
 	}

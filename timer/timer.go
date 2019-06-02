@@ -6,9 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/MaxnSter/gnet/logger"
-	"github.com/MaxnSter/gnet/util"
 	"github.com/MaxnSter/gnet/pool"
+	"github.com/MaxnSter/gnet/util"
 )
 
 /*
@@ -194,8 +193,6 @@ func (tm *timerManager) run() {
 	defer func() {
 		loopTimer.Stop()
 		close(tm.closeDoneCh)
-
-		logger.Infoln("timer stopped")
 	}()
 
 	for {

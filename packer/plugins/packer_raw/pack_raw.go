@@ -1,4 +1,4 @@
-package pack_raw
+package packer_raw
 
 import (
 	"github.com/MaxnSter/gnet/packer"

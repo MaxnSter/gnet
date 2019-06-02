@@ -1,4 +1,4 @@
-package net
+package gnet
 
 import (
 	"github.com/MaxnSter/gnet/pool"
@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/MaxnSter/GolangDataStructure/try"
-	"github.com/MaxnSter/gnet"
 	"github.com/MaxnSter/gnet/util"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
@@ -18,29 +17,29 @@ import (
 
 type server struct {
 	net.Listener
-	gnet.Module
-	gnet.Operator
+	Module
+	operator Operator
 
 	guard    sync.Mutex
-	sessions map[uint64]gnet.NetSession
+	sessions map[uint64]NetSession
 
 	wg   sync.WaitGroup
 	once sync.Once
 	done chan struct{}
 }
 
-func NewServer(l net.Listener, m gnet.Module, o gnet.Operator) gnet.NetServer {
+func NewServer(l net.Listener, m Module, o Operator) NetServer {
 	s := &server{
 		Listener: l,
 		Module:   m,
-		Operator: o,
-		sessions: map[uint64]gnet.NetSession{},
+		operator: o,
+		sessions: map[uint64]NetSession{},
 		done:     make(chan struct{}),
 	}
 	return s
 }
 
-func (svc *server) Broadcast(f func(session gnet.NetSession)) {
+func (svc *server) Broadcast(f func(session NetSession)) {
 	svc.guard.Lock()
 	snapshot := svc.sessions
 	svc.guard.Unlock()
@@ -52,7 +51,7 @@ func (svc *server) Broadcast(f func(session gnet.NetSession)) {
 	}
 }
 
-func (svc *server) GetSession(id uint64) (session gnet.NetSession, ok bool) {
+func (svc *server) GetSession(id uint64) (session NetSession, ok bool) {
 	svc.guard.Lock()
 	defer svc.guard.Unlock()
 
@@ -63,9 +62,12 @@ func (svc *server) GetSession(id uint64) (session gnet.NetSession, ok bool) {
 func (svc *server) Run() {
 	svc.once.Do(func() {
 		go svc.signal()
+
+		svc.Module.Pool().Run()
 		svc.serve()
 
 		svc.wg.Wait()
+		svc.Module.Pool().Stop()
 	})
 }
 
@@ -119,7 +121,7 @@ func (svc *server) serve() {
 
 func (svc *server) onNewSession(conn net.Conn) {
 	id := util.GetUUID()
-	session := newSession(id, conn, svc)
+	session := newSession(id, conn, svc, svc.operator)
 
 	svc.guard.Lock()
 	svc.sessions[id] = session
@@ -145,7 +147,7 @@ func (svc *server) Stop() {
 	close(svc.done)
 
 	svc.Listener.Close()
-	svc.Broadcast(func(session gnet.NetSession) {
+	svc.Broadcast(func(session NetSession) {
 		session.Stop()
 	})
 }
